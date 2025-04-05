@@ -6,13 +6,12 @@ import {
   StyleSheet,
   Text,
   ActivityIndicator,
-  Alert,
 } from "react-native";
 import * as Google from "expo-auth-session/providers/google";
 import * as WebBrowser from "expo-web-browser";
 import { useRouter } from "expo-router";
 
-
+// Initialize WebBrowser for auth session handling
 WebBrowser.maybeCompleteAuthSession();
 
 export default function LandingScreen() {
@@ -31,6 +30,22 @@ export default function LandingScreen() {
     scopes: ["openid", "profile", "email"],
     responseType: "token",
   });
+
+  // Helper function to fetch user info from Google
+  const fetchUserInfo = async (accessToken: string) => {
+    try {
+      const res = await fetch(
+        "https://openidconnect.googleapis.com/v1/userinfo",
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      const userData = await res.json();
+      console.log("User info:", JSON.stringify(userData, null, 2));
+    } catch (error) {
+      console.error("Error fetching user info:", error);
+    }
+  };
 
   const handleAuthResponse = useCallback(async () => {
     if (response?.type === "success") {
@@ -69,6 +84,9 @@ export default function LandingScreen() {
           )
         );
 
+        // Fetch and print user info to verify its accuracy
+        await fetchUserInfo(authentication.accessToken);
+
         // For now, just navigate to tabs
         router.replace("/tabs");
       } catch (err) {
@@ -83,7 +101,9 @@ export default function LandingScreen() {
         errorMessage: response.error?.message,
         fullResponse: JSON.stringify(response, null, 2),
       });
-      setError(`Auth Error: ${response.error?.message || "Please try again."}`);
+      setError(
+        `Auth Error: ${response.error?.message || "Please try again."}`
+      );
       setIsLoading(false);
     } else if (response?.type === "dismiss") {
       console.log("Auth flow dismissed by user");
@@ -129,6 +149,11 @@ export default function LandingScreen() {
     setIsLoading(false);
   };
 
+  const handleSkip = () => {
+    // Navigate to the tabs without OAuth
+    router.replace("/tabs");
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Welcome to Closeted</Text>
@@ -142,14 +167,19 @@ export default function LandingScreen() {
       {isLoading ? (
         <ActivityIndicator size="large" color="#4285f4" />
       ) : (
-        !error && (
-          <Button
-            disabled={!request}
-            title="Sign in with Google"
-            onPress={handleSignIn}
-            color="#4285f4"
-          />
-        )
+        <>
+          {!error && (
+            <Button
+              disabled={!request}
+              title="Sign in with Google"
+              onPress={handleSignIn}
+              color="#4285f4"
+            />
+          )}
+          <View style={styles.skipButton}>
+            <Button title="Skip" onPress={handleSkip} color="#4285f4" />
+          </View>
+        </>
       )}
     </View>
   );
@@ -183,5 +213,8 @@ const styles = StyleSheet.create({
     color: "#ff6b6b",
     marginBottom: 12,
     textAlign: "center",
+  },
+  skipButton: {
+    marginTop: 16,
   },
 });
