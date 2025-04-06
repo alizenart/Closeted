@@ -4,6 +4,9 @@ Store your outfit, get feedback on wishlist items to prevent impulse spending an
 
 Technologies used include: Expo Go Framework, React Native, Firebase for auth and backend/storage, Open AI API, Nativewind CSS for styling
 
+![image](https://github.com/user-attachments/assets/222f66b1-44ca-45a4-aa9c-03f98e00bff1)
+
+
 # Welcome to your Expo app 👋
 
 This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
