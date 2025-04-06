@@ -8,11 +8,13 @@ import {
   Alert,
   ImageBackground,
   Dimensions,
+  Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { useUserPreferences } from "./hooks/useUserPreferences";
 import { auth } from "./config/firebase";
 import { Image } from "expo-image";
+import { LinearGradient } from "expo-linear-gradient";
 
 const AESTHETICS = [
   {
@@ -83,6 +85,8 @@ export default function OnboardingScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { updatePreferences, loading, error, preferences } =
     useUserPreferences();
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.95)).current;
 
   useEffect(() => {
     console.log("Onboarding screen mounted");
@@ -101,9 +105,25 @@ export default function OnboardingScreen() {
   useEffect(() => {
     if (preferences?.onboardingCompleted) {
       console.log("Onboarding already completed, redirecting to tabs");
-      router.replace("tabs");
+      router.replace("/tabs");
     }
   }, [preferences]);
+
+  React.useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
 
   const toggleAesthetic = (aestheticId: string) => {
     setSelectedAesthetics((prev) => {
@@ -131,7 +151,7 @@ export default function OnboardingScreen() {
 
       if (success) {
         console.log("Preferences saved successfully, navigating to tabs");
-        router.replace("tabs");
+        router.replace("/tabs");
       } else {
         Alert.alert("Error", "Failed to save preferences. Please try again.");
       }
@@ -145,9 +165,9 @@ export default function OnboardingScreen() {
 
   if (loading) {
     return (
-      <View className="flex-1 bg-background justify-center items-center">
-        <ActivityIndicator size="large" color="#4285f4" />
-        <Text className="text-text-secondary mt-4">Loading...</Text>
+      <View className="flex-1 bg-emerald-50 justify-center items-center">
+        <ActivityIndicator size="large" color="#059669" />
+        <Text className="text-emerald-700 mt-4 font-medium">Loading...</Text>
       </View>
     );
   }
@@ -159,84 +179,95 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background">
-      <ScrollView className="flex-1">
-        <View className="p-6 space-y-6">
-          <View className="space-y-2">
-            <Text className="text-3xl font-bold text-text">
-              Welcome to Closeted!
-            </Text>
-            <Text className="text-text-secondary text-lg">
-              Let's personalize your experience. Select the aesthetics that
-              interest you:
-            </Text>
-          </View>
-
-          <View className="flex-row flex-wrap gap-2">
-            {AESTHETICS.map((aesthetic) => (
-              <TouchableOpacity
-                key={aesthetic.id}
-                onPress={() => toggleAesthetic(aesthetic.id)}
-                style={{
-                  width: CARD_WIDTH,
-                  height: CARD_HEIGHT,
-                  marginBottom: CARD_SPACING,
-                }}
-              >
-                <ImageBackground
-                  source={aesthetic.image}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    justifyContent: "flex-end",
-                  }}
-                  imageStyle={{
-                    borderRadius: 12,
-                    borderWidth: 2,
-                    borderColor: selectedAesthetics.includes(aesthetic.id)
-                      ? "#4285f4"
-                      : "transparent",
-                  }}
-                >
-                  <View
-                    style={{
-                      backgroundColor: "rgba(0,0,0,0.6)",
-                      padding: 8,
-                      borderBottomLeftRadius: 12,
-                      borderBottomRightRadius: 12,
-                    }}
-                  >
-                    <Text
-                      className="text-white text-center font-medium"
-                      numberOfLines={1}
-                    >
-                      {aesthetic.label}
-                    </Text>
-                  </View>
-                </ImageBackground>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {isSubmitting ? (
-            <View className="items-center py-4">
-              <ActivityIndicator size="large" color="#4285f4" />
-              <Text className="text-text-secondary mt-2">
-                Saving preferences...
+    <View className="flex-1">
+      <LinearGradient
+        colors={["#f0fdf4", "#dcfce7", "#bbf7d0"]}
+        className="flex-1"
+      >
+        <ScrollView className="flex-1">
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ scale: scaleAnim }],
+            }}
+            className="p-6 space-y-6"
+          >
+            <View className="space-y-2">
+              <Text className="text-4xl font-bold text-emerald-800">
+                Welcome to Closeted!
+              </Text>
+              <Text className="text-emerald-700 text-lg font-medium">
+                Let's personalize your experience. Select the aesthetics that
+                interest you:
               </Text>
             </View>
-          ) : (
-            <TouchableOpacity
-              onPress={handleSubmit}
-              className="w-full bg-primary py-3 rounded-lg mt-4"
-            >
-              <Text className="text-white text-center font-semibold">
-                Continue
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
-      </ScrollView>
+
+            <View className="flex-row flex-wrap gap-2">
+              {AESTHETICS.map((aesthetic) => (
+                <TouchableOpacity
+                  key={aesthetic.id}
+                  onPress={() => toggleAesthetic(aesthetic.id)}
+                  style={{
+                    width: CARD_WIDTH,
+                    height: CARD_HEIGHT,
+                    marginBottom: CARD_SPACING,
+                  }}
+                >
+                  <ImageBackground
+                    source={aesthetic.image}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      justifyContent: "flex-end",
+                    }}
+                    imageStyle={{
+                      borderRadius: 16,
+                      borderWidth: 2,
+                      borderColor: selectedAesthetics.includes(aesthetic.id)
+                        ? "#059669"
+                        : "transparent",
+                    }}
+                  >
+                    <LinearGradient
+                      colors={["transparent", "rgba(0,0,0,0.8)"]}
+                      style={{
+                        padding: 12,
+                        borderBottomLeftRadius: 16,
+                        borderBottomRightRadius: 16,
+                      }}
+                    >
+                      <Text
+                        className="text-white text-center font-semibold text-base"
+                        numberOfLines={1}
+                      >
+                        {aesthetic.label}
+                      </Text>
+                    </LinearGradient>
+                  </ImageBackground>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {isSubmitting ? (
+              <View className="items-center py-4">
+                <ActivityIndicator size="large" color="#059669" />
+                <Text className="text-emerald-700 mt-2 font-medium">
+                  Saving preferences...
+                </Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={handleSubmit}
+                className="w-full bg-emerald-600 py-3.5 rounded-2xl shadow-lg shadow-emerald-200 active:bg-emerald-700"
+              >
+                <Text className="text-white text-center font-semibold text-lg">
+                  Continue
+                </Text>
+              </TouchableOpacity>
+            )}
+          </Animated.View>
+        </ScrollView>
+      </LinearGradient>
     </View>
   );
 }

@@ -12,23 +12,28 @@ import { useState, useEffect } from "react";
 import { router } from "expo-router";
 import { auth } from "../config/firebase";
 import { getUserOutfitsFromStorage, Outfit } from "../utils/firebase";
+import { LinearGradient } from "expo-linear-gradient";
+import { Ionicons } from "@expo/vector-icons";
 
 interface ButtonProps {
   label: string;
   onPress?: () => void;
-  style?: ViewStyle; // Allow the style prop
+  style?: ViewStyle;
 }
 
 const Button = ({ label, onPress, style }: ButtonProps) => {
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.button, style]}>
-      <Text style={styles.label}>{label}</Text>
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.button, style]}
+      className="bg-emerald-600 active:bg-emerald-700"
+    >
+      <Text className="text-white font-semibold">{label}</Text>
     </TouchableOpacity>
   );
 };
 
 import ImageViewer from "@/components/ImageViewer";
-
 import * as ImagePicker from "expo-image-picker";
 
 const PlaceholderImage = require("@/assets/images/react-logo.png");
@@ -89,237 +94,130 @@ export default function Index() {
   };
 
   return (
-    <View style={styles.container}>
-      {/* recommendations section */}
-      <View style={styles.recommendationsContainer}>
-        <Text style={styles.recommendationsTitle}>RECOMMENDATIONS</Text>
-        <Text style={styles.recommendationsSubtitle}>
-          based on your wishlist
-        </Text>
+    <View className="flex-1 bg-emerald-50">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingBottom: 20 }}
+      >
+        {/* recommendations section */}
+        <View className="px-4 py-6 space-y-4">
+          <View className="space-y-1">
+            <Text className="text-xl font-bold text-emerald-800">
+              Recommendations
+            </Text>
+            <Text className="text-emerald-600 text-sm">
+              Based on your wishlist
+            </Text>
+          </View>
 
-        {/* Rows of Objects */}
-        <View style={styles.row}>
-          {/* First Row */}
-          <View style={styles.objectContainer}>
-            <Image
-              source={{
-                uri: "https://saltymom.net/wp-content/uploads/2016/08/diy-sew-a-square-linen-japanese-dress-saltymom-net.png?w=640",
-              }}
-              style={styles.squareImage}
-            />
-            <View style={styles.buttonsContainer}>
-              <Button label="A" style={styles.circularButton} />
-              <Button label="B" style={styles.circularButton} />
-              <Button label="C" style={styles.circularButton} />
+          {/* Rows of Objects */}
+          <View className="space-y-4">
+            {/* First Row */}
+            <View className="bg-white rounded-2xl p-3 shadow-sm">
+              <Image
+                source={{
+                  uri: "https://saltymom.net/wp-content/uploads/2016/08/diy-sew-a-square-linen-japanese-dress-saltymom-net.png?w=640",
+                }}
+                className="w-full h-40 rounded-xl"
+                resizeMode="cover"
+              />
+              <View className="flex-row justify-center space-x-3 mt-3">
+                <Button label="A" style={styles.circularButton} />
+                <Button label="B" style={styles.circularButton} />
+                <Button label="C" style={styles.circularButton} />
+              </View>
+            </View>
+
+            {/* Second Row */}
+            <View className="bg-white rounded-2xl p-3 shadow-sm">
+              <Image
+                source={{
+                  uri: "https://saltymom.net/wp-content/uploads/2016/08/diy-sew-a-square-linen-japanese-dress-saltymom-net.png?w=640",
+                }}
+                className="w-full h-40 rounded-xl"
+                resizeMode="cover"
+              />
+              <View className="flex-row justify-center space-x-3 mt-3">
+                <Button label="A" style={styles.circularButton} />
+                <Button label="B" style={styles.circularButton} />
+                <Button label="C" style={styles.circularButton} />
+              </View>
             </View>
           </View>
         </View>
 
-        <View style={styles.row}>
-          {/* Second Row */}
-          <View style={styles.objectContainer}>
-            <Image
-              source={{
-                uri: "https://saltymom.net/wp-content/uploads/2016/08/diy-sew-a-square-linen-japanese-dress-saltymom-net.png?w=640",
-              }}
-              style={styles.squareImage}
-            />
-            <View style={styles.buttonsContainer}>
-              <Button label="A" style={styles.circularButton} />
-              <Button label="B" style={styles.circularButton} />
-              <Button label="C" style={styles.circularButton} />
-            </View>
-          </View>
-        </View>
-      </View>
-      <View style={styles.footerContainer}>
-        <Text style={styles.recommendationsTitle}>YOUR OUTFITS</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={true}
-          style={styles.scrollContainer}
-        >
-          {/* Pictures of Already Uploaded Outfits */}
-          <View style={styles.columnContainer}>
-            {loading ? (
-              <Text style={styles.loadingText}>Loading outfits...</Text>
-            ) : outfits.length > 0 ? (
-              <>
-                {outfits.slice(0, 5).map((outfit) => (
-                  <Image
-                    key={outfit.id}
-                    source={{ uri: outfit.imageUrl }}
-                    style={styles.outfitimage}
-                  />
-                ))}
+        <View className="px-4 py-6 space-y-4">
+          <Text className="text-xl font-bold text-emerald-800">
+            Your Outfits
+          </Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="flex-1"
+            contentContainerStyle={{ paddingRight: 16 }}
+          >
+            <View className="flex-row">
+              {loading ? (
+                <View className="items-center justify-center p-4">
+                  <Text className="text-emerald-600">Loading outfits...</Text>
+                </View>
+              ) : outfits.length > 0 ? (
+                <>
+                  {outfits.slice(0, 5).map((outfit) => (
+                    <View key={outfit.id} className="mr-4">
+                      <Image
+                        source={{ uri: outfit.imageUrl }}
+                        className="w-24 h-64 rounded-2xl"
+                        resizeMode="cover"
+                      />
+                    </View>
+                  ))}
+                  <TouchableOpacity
+                    className="w-24 h-64 rounded-2xl bg-emerald-100 justify-center items-center mr-4"
+                    onPress={navigateToOutfits}
+                  >
+                    <Text className="text-emerald-700 font-semibold text-center text-base">
+                      See all outfits →
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
                 <TouchableOpacity
-                  style={styles.seeAllCard}
-                  onPress={navigateToOutfits}
+                  className="w-48 h-64 rounded-2xl bg-emerald-100 justify-center items-center p-4 mr-4"
+                  onPress={navigateToCreate}
                 >
-                  <Text style={styles.seeAllText}>See all outfits →</Text>
+                  <Ionicons
+                    name="add-circle-outline"
+                    size={32}
+                    color="#059669"
+                  />
+                  <Text className="text-emerald-700 font-semibold text-center mt-2 text-base">
+                    Create your first outfit
+                  </Text>
+                  <Text className="text-emerald-600 text-center mt-1 text-sm">
+                    Tap to get started →
+                  </Text>
                 </TouchableOpacity>
-              </>
-            ) : (
-              <TouchableOpacity
-                style={styles.createOutfitCard}
-                onPress={navigateToCreate}
-              >
-                <Text style={styles.createOutfitText}>
-                  Create your first outfit
-                </Text>
-                <Text style={styles.createOutfitSubtext}>
-                  Tap to get started →
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
-        </ScrollView>
-      </View>
+              )}
+            </View>
+          </ScrollView>
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
-const screenHeight = Dimensions.get("window").height;
-
 const styles = StyleSheet.create({
-  scrollContainer: {
-    width: "100%",
-  },
-  columnContainer: {
-    flexDirection: "row",
-  },
-  outfitimage: {
-    width: 100,
-    height: 250,
-    borderRadius: 18,
-    marginHorizontal: 10,
-    marginVertical: 15,
-  },
-  seeAllCard: {
-    width: 100,
-    height: 250,
-    borderRadius: 18,
-    marginHorizontal: 10,
-    marginVertical: 15,
-    backgroundColor: "#FFFDD0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  seeAllText: {
-    color: "#406e5e",
-    fontSize: 16,
-    fontWeight: "bold",
-    textAlign: "center",
-  },
-  loadingText: {
-    color: "white",
-    fontSize: 16,
-    marginVertical: 15,
-    marginHorizontal: 10,
-  },
-  noOutfitsText: {
-    color: "white",
-    fontSize: 16,
-    marginVertical: 15,
-    marginHorizontal: 10,
-  },
-  createOutfitCard: {
-    width: 200,
-    height: 250,
-    borderRadius: 18,
-    marginHorizontal: 10,
-    marginVertical: 15,
-    backgroundColor: "#FFFDD0",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 15,
-  },
-  createOutfitText: {
-    color: "#406e5e",
-    fontSize: 18,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  createOutfitSubtext: {
-    color: "#406e5e",
-    fontSize: 14,
-    textAlign: "center",
-  },
-  container: {
-    flex: 1,
-    alignItems: "flex-start",
-  },
-  recommendationsContainer: {
-    alignItems: "flex-start",
-    padding: 20,
-    backgroundColor: "#25292e",
-    width: "100%",
-    height: screenHeight / 3,
-  },
-  recommendationsTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "white",
-  },
-  recommendationsSubtitle: {
-    fontSize: 16,
-    color: "gray",
-    marginBottom: 20,
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: 5,
-  },
-  objectContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-around",
-    marginBottom: 5,
-  },
-  squareImage: {
-    width: 60,
-    height: 60,
-    marginRight: 25,
-    marginLeft: 25,
-  },
-  buttonsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    width: 160,
-  },
   circularButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 25,
-    margin: 5,
-    backgroundColor: "#555",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: "center",
     alignItems: "center",
-  },
-  footerContainer: {
-    backgroundColor: "#406e5e",
-    width: "100%",
-    height: (screenHeight * 2) / 3,
-    padding: 20,
-  },
-  imageContainer: {
-    flex: 1,
-  },
-  image: {
-    width: 320,
-    height: 440,
-    borderRadius: 18,
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 10,
-  },
-  label: {
-    color: "#fff",
-    fontSize: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 10,
   },
 });

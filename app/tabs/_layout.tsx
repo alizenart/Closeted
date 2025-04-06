@@ -1,18 +1,28 @@
 import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Platform } from "react-native";
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#ffd33d",
+        tabBarActiveTintColor: "#059669",
         headerStyle: {
-          backgroundColor: "#25292e",
+          backgroundColor: "#f0fdf4",
         },
         headerShadowVisible: false,
-        headerTintColor: "#fff",
+        headerTintColor: "#065f46",
         tabBarStyle: {
-          backgroundColor: "#25292e",
+          backgroundColor: "#ffffff",
+          borderTopWidth: 1,
+          borderTopColor: "#dcfce7",
+          height: 80,
+          paddingBottom: 8,
+          paddingTop: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "500",
         },
       }}
     >
@@ -30,7 +40,7 @@ export default function TabLayout() {
             <Ionicons
               name={focused ? "home-sharp" : "home-outline"}
               color={color}
-              size={24}
+              size={22}
             />
           ),
         }}
@@ -49,7 +59,7 @@ export default function TabLayout() {
             <Ionicons
               name={focused ? "library" : "library-outline"}
               color={color}
-              size={24}
+              size={22}
             />
           ),
         }}
@@ -66,9 +76,9 @@ export default function TabLayout() {
             focused: boolean;
           }) => (
             <Ionicons
-              name={focused ? "add" : "add-outline"}
+              name={focused ? "add-circle" : "add-circle-outline"}
               color={color}
-              size={24}
+              size={26}
             />
           ),
         }}
@@ -87,7 +97,7 @@ export default function TabLayout() {
             <Ionicons
               name={focused ? "heart" : "heart-outline"}
               color={color}
-              size={24}
+              size={22}
             />
           ),
         }}
@@ -106,7 +116,7 @@ export default function TabLayout() {
             <Ionicons
               name={focused ? "globe" : "globe-outline"}
               color={color}
-              size={24}
+              size={22}
             />
           ),
         }}
@@ -125,7 +135,7 @@ export default function TabLayout() {
             <Ionicons
               name={focused ? "person" : "person-outline"}
               color={color}
-              size={24}
+              size={22}
             />
           ),
         }}
