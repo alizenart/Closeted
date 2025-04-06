@@ -69,7 +69,7 @@ export default function ClosetScreen() {
 
   const renderOutfit = ({ item }: { item: Outfit }) => (
     <View
-      className="mb-4 rounded-xl overflow-hidden bg-gray-800 shadow-lg"
+      className="mb-4 rounded-xl overflow-hidden bg-white shadow-md border border-emerald-100"
       style={{ width: itemWidth }}
     >
       <Image
@@ -77,27 +77,27 @@ export default function ClosetScreen() {
         className="w-full aspect-square"
         resizeMode="cover"
       />
-      <View className="p-2">
+      <View className="p-3">
         {item.details && (
-          <Text className="text-white text-xs mb-1" numberOfLines={2}>
+          <Text className="text-gray-700 text-sm mb-2" numberOfLines={2}>
             {item.details}
           </Text>
         )}
         {item.genre && (
-          <View className="bg-gray-700 px-2 py-1 rounded-full mb-1 self-start">
-            <Text className="text-white text-xs">{item.genre}</Text>
+          <View className="bg-emerald-100 px-3 py-1 rounded-full mb-2 self-start">
+            <Text className="text-emerald-700 text-xs">{item.genre}</Text>
           </View>
         )}
         <View className="flex-row justify-between items-center">
-          <Text className="text-white text-xs">
+          <Text className="text-gray-500 text-xs">
             {item.date
               ? new Date(item.date).toLocaleDateString()
               : new Date(item.createdAt).toLocaleDateString()}
           </Text>
           {item.rating && (
             <View className="flex-row items-center">
-              <Text className="text-yellow-400 text-xs mr-1">★</Text>
-              <Text className="text-white text-xs">{item.rating}/10</Text>
+              <Text className="text-amber-500 text-xs mr-1">★</Text>
+              <Text className="text-gray-600 text-xs">{item.rating}/10</Text>
             </View>
           )}
         </View>
@@ -131,10 +131,10 @@ export default function ClosetScreen() {
   }
 
   return (
-    <View className="flex-1 bg-background">
+    <View className="flex-1 bg-gradient-to-b from-emerald-50 to-white">
       {isOffline && (
-        <View className="bg-yellow-500/20 p-4 mb-2">
-          <Text className="text-yellow-500 text-center">
+        <View className="bg-amber-100 p-4 mb-2 border-b border-amber-200">
+          <Text className="text-amber-600 text-center">
             Having trouble connecting to the server. Some features may be
             limited.
           </Text>
@@ -143,14 +143,14 @@ export default function ClosetScreen() {
 
       {outfits.length === 0 ? (
         <View className="flex-1 items-center justify-center p-4">
-          <Text className="text-text-secondary text-center mb-4">
+          <Text className="text-emerald-700 text-center text-lg mb-4">
             No outfits yet. Upload some photos to see them here!
           </Text>
           <TouchableOpacity
-            className="bg-blue-500 px-4 py-2 rounded-lg"
+            className="bg-emerald-600 px-6 py-3 rounded-xl shadow-md shadow-emerald-200"
             onPress={onRefresh}
           >
-            <Text className="text-white">Refresh</Text>
+            <Text className="text-white font-semibold">Refresh</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -160,7 +160,7 @@ export default function ClosetScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={{
             padding: padding,
-            paddingBottom: padding + 20, // Extra padding at bottom for better scrolling
+            paddingBottom: padding + 20,
           }}
           numColumns={numColumns}
           columnWrapperStyle={{
@@ -171,12 +171,12 @@ export default function ClosetScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#4285f4"
+              tintColor="#25292e"
             />
           }
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={
-            <Text className="text-white text-xl font-bold mb-4">
+            <Text className="text-emerald-700 text-2xl font-bold mb-6">
               Your Closet
             </Text>
           }

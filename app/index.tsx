@@ -83,7 +83,7 @@ export default function LandingScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      className="flex-1 bg-background"
+      className="flex-1 bg-gradient-to-b from-emerald-50 to-white"
     >
       <ScrollView
         contentContainerStyle={{ flexGrow: 1 }}
@@ -92,28 +92,28 @@ export default function LandingScreen() {
         <View className="flex-1 justify-center items-center">
           <View className="w-full max-w-sm space-y-8">
             <View className="items-center">
-              <Text className="text-3xl font-bold text-text mb-2">
+              <Text className="text-4xl font-bold text-emerald-700 mb-2">
                 Welcome to Closeted
               </Text>
-              <Text className="text-text-secondary text-center">
+              <Text className="text-emerald-600 text-center text-lg">
                 {isSignUp ? "Create your account" : "Sign in to your account"}
               </Text>
             </View>
 
             <View className="space-y-4">
               <TextInput
-                className="w-full bg-background-light text-text px-4 py-3 rounded-lg"
+                className="w-full bg-white text-gray-800 px-4 py-3 rounded-xl border border-emerald-200 focus:border-emerald-400 shadow-sm"
                 placeholder="Email"
-                placeholderTextColor="#666"
+                placeholderTextColor="#9CA3AF"
                 value={email}
                 onChangeText={setEmail}
                 autoCapitalize="none"
                 keyboardType="email-address"
               />
               <TextInput
-                className="w-full bg-background-light text-text px-4 py-3 rounded-lg"
+                className="w-full bg-white text-gray-800 px-4 py-3 rounded-xl border border-emerald-200 focus:border-emerald-400 shadow-sm"
                 placeholder="Password"
-                placeholderTextColor="#666"
+                placeholderTextColor="#9CA3AF"
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry
@@ -121,22 +121,22 @@ export default function LandingScreen() {
             </View>
 
             {error && (
-              <View className="bg-red-500/10 p-4 rounded-lg">
+              <View className="bg-red-100 p-4 rounded-xl border border-red-200">
                 <Text className="text-red-500 text-center">{error}</Text>
               </View>
             )}
 
             {isLoading ? (
               <View className="items-center py-4">
-                <ActivityIndicator size="large" color="#4285f4" />
+                <ActivityIndicator size="large" color="#25292e" />
               </View>
             ) : (
               <View className="space-y-4">
                 <TouchableOpacity
                   onPress={handleAuth}
-                  className="w-full bg-primary py-3 rounded-lg"
+                  className="w-full bg-emerald-600 py-3 rounded-xl shadow-md shadow-emerald-200"
                 >
-                  <Text className="text-white text-center font-semibold">
+                  <Text className="text-white text-center font-semibold text-lg">
                     {isSignUp ? "Sign Up" : "Sign In"}
                   </Text>
                 </TouchableOpacity>
@@ -145,7 +145,7 @@ export default function LandingScreen() {
                   onPress={() => setIsSignUp(!isSignUp)}
                   className="w-full py-3"
                 >
-                  <Text className="text-text-secondary text-center">
+                  <Text className="text-emerald-600 text-center">
                     {isSignUp
                       ? "Already have an account? Sign In"
                       : "Need an account? Sign Up"}
@@ -153,26 +153,26 @@ export default function LandingScreen() {
                 </TouchableOpacity>
 
                 <View className="flex-row items-center my-4">
-                  <View className="flex-1 h-[1px] bg-gray-600" />
-                  <Text className="mx-4 text-text-secondary">OR</Text>
-                  <View className="flex-1 h-[1px] bg-gray-600" />
+                  <View className="flex-1 h-[1px] bg-emerald-200" />
+                  <Text className="mx-4 text-emerald-500">OR</Text>
+                  <View className="flex-1 h-[1px] bg-emerald-200" />
                 </View>
 
                 <TouchableOpacity
                   onPress={handleGoogleSignIn}
-                  className="w-full bg-white py-3 rounded-lg flex-row items-center justify-center space-x-2"
+                  className="w-full bg-white py-3 rounded-xl flex-row items-center justify-center space-x-2 shadow-md border border-emerald-100"
                 >
                   <Image
                     source={{ uri: "https://www.google.com/favicon.ico" }}
                     className="w-5 h-5"
                   />
-                  <Text className="text-gray-800 font-semibold">
+                  <Text className="text-gray-700 font-semibold">
                     Sign in with Google
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={handleSkip} className="w-full py-3">
-                  <Text className="text-text-secondary text-center">
+                  <Text className="text-emerald-500 text-center">
                     Skip for now
                   </Text>
                 </TouchableOpacity>

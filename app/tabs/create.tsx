@@ -133,88 +133,90 @@ export default function CreateScreen() {
   };
 
   return (
-    <ScrollView className="flex-1 bg-background">
-      <View className="w-full items-center p-4">
-        <Text className="text-white text-xl font-bold mb-6">
-          Add New Outfit
+    <View className="flex-1 bg-gradient-to-b from-emerald-50 to-white">
+      <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
+        <Text className="text-emerald-700 text-2xl font-bold mb-4">
+          Create New Outfit
         </Text>
-
-        <View className="w-48 h-48 rounded-xl overflow-hidden bg-gray-800 shadow-lg mb-6">
-          {selectedImage ? (
-            <Image
-              source={{ uri: selectedImage }}
-              className="w-full h-full"
-              contentFit="cover"
-              transition={200}
-              onError={(error) => console.error("Image loading error:", error)}
-            />
-          ) : (
-            <Image
-              source={PlaceholderImage}
-              className="w-full h-full"
-              contentFit="cover"
-            />
-          )}
+        <View className="bg-white rounded-xl shadow-md border border-emerald-100 p-4 mb-4">
+          <TouchableOpacity
+            onPress={pickImageAsync}
+            className="w-full aspect-square bg-white rounded-lg border-2 border-dashed border-emerald-200 items-center justify-center"
+          >
+            {selectedImage ? (
+              <Image
+                source={{ uri: selectedImage }}
+                className="w-full h-full rounded-lg"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="items-center">
+                <Text className="text-emerald-600 text-lg mb-2">
+                  Tap to add photo
+                </Text>
+                <Text className="text-emerald-400 text-sm">
+                  JPG or PNG, max 5MB
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
         </View>
 
-        <View className="w-full space-y-4 mb-4">
+        <View className="bg-white rounded-xl shadow-md border border-emerald-100 p-4 mb-4">
           <TextInput
-            className="w-full bg-gray-800 text-white px-4 py-3 rounded-lg"
+            className="bg-white border border-emerald-200 rounded-lg px-4 py-3 text-gray-700 mb-4 focus:border-emerald-400"
             placeholder="Add details about your outfit..."
-            placeholderTextColor="#666"
-            value={details}
-            onChangeText={setDetails}
+            placeholderTextColor="#9CA3AF"
             multiline
             numberOfLines={3}
+            value={details}
+            onChangeText={setDetails}
           />
 
-          <View className="bg-gray-800 p-4 rounded-lg">
-            <Text className="text-white mb-2">Rating: {rating}/10</Text>
+          <View className="mb-4">
+            <Text className="text-emerald-700 font-semibold mb-2">Rating</Text>
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-gray-600">{rating}/10</Text>
+            </View>
             <Slider
               style={{ width: "100%", height: 40 }}
-              minimumValue={1}
+              minimumValue={0}
               maximumValue={10}
               step={1}
               value={rating}
               onValueChange={setRating}
-              minimumTrackTintColor="#ffd33d"
-              maximumTrackTintColor="#666"
-              thumbTintColor="#ffd33d"
+              minimumTrackTintColor="#25292e"
+              maximumTrackTintColor="#E5E7EB"
+              thumbTintColor="#25292e"
             />
           </View>
 
-          <TouchableOpacity
-            className="w-full bg-gray-800 px-4 py-3 rounded-lg"
-            onPress={() => setShowDatePicker(true)}
-          >
-            <Text className="text-white">
-              Date: {date.toLocaleDateString()}
-            </Text>
-          </TouchableOpacity>
+          <View className="mb-4">
+            <Text className="text-emerald-700 font-semibold mb-2">Date</Text>
+            <TouchableOpacity
+              onPress={() => setShowDatePicker(true)}
+              className="bg-white border border-emerald-200 rounded-lg px-4 py-3"
+            >
+              <Text className="text-emerald-600">
+                {date ? new Date(date).toLocaleDateString() : "Select date"}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-          {showDatePicker && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="default"
-              onChange={onDateChange}
-            />
-          )}
-
-          <View className="bg-gray-800 p-4 rounded-lg">
-            <Text className="text-white mb-2">Genre</Text>
+          <View>
+            <Text className="text-emerald-700 font-semibold mb-2">Genre</Text>
             <View className="flex-row flex-wrap gap-2">
               {GENRES.map((g) => (
                 <TouchableOpacity
                   key={g}
-                  className={`px-3 py-1 rounded-full ${
-                    genre === g ? "bg-yellow-400" : "bg-gray-700"
-                  }`}
                   onPress={() => setGenre(g)}
+                  className={`px-4 py-2 rounded-full ${
+                    genre === g ? "bg-emerald-600" : "bg-emerald-100"
+                  }`}
                 >
                   <Text
                     className={`${
-                      genre === g ? "text-gray-900" : "text-white"
+                      genre === g ? "text-white" : "text-emerald-700"
                     }`}
                   >
                     {g}
@@ -225,27 +227,27 @@ export default function CreateScreen() {
           </View>
         </View>
 
-        {isUploading && (
-          <View className="w-full items-center mb-4">
-            <ActivityIndicator size="small" color="#4285f4" className="mb-2" />
-            <Text className="text-blue-400 text-center">{uploadProgress}</Text>
-          </View>
-        )}
-
-        <View className="w-full space-y-4">
-          <Button
-            theme="primary"
-            label="Choose a photo"
-            onPress={pickImageAsync}
-            disabled={isUploading}
-          />
-          <Button
-            label={isUploading ? "Uploading..." : "Use this photo"}
-            onPress={handleUpload}
-            disabled={!selectedImage || isUploading}
-          />
-        </View>
-      </View>
-    </ScrollView>
+        <TouchableOpacity
+          onPress={handleUpload}
+          disabled={!selectedImage || isUploading}
+          className={`w-full py-4 rounded-xl mb-4 ${
+            !selectedImage || isUploading
+              ? "bg-gray-300"
+              : "bg-emerald-600 shadow-md shadow-emerald-200"
+          }`}
+        >
+          {isUploading ? (
+            <View className="flex-row items-center justify-center">
+              <ActivityIndicator color="#25292e" />
+              <Text className="text-white ml-2">Uploading...</Text>
+            </View>
+          ) : (
+            <Text className="text-white text-center font-semibold text-lg">
+              Upload Outfit
+            </Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+    </View>
   );
 }
