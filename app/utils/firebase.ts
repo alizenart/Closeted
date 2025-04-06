@@ -9,6 +9,17 @@ export interface Outfit {
   imageUrl: string;
   createdAt: Date;
   userId: string;
+  details?: string;
+  rating?: number;
+  genre?: string;
+  date?: Date;
+}
+
+interface OutfitMetadata {
+  details?: string;
+  rating?: number;
+  genre?: string;
+  date?: Date;
 }
 
 // Helper function to retry operations
@@ -41,30 +52,46 @@ async function uriToBlob(uri: string): Promise<Blob> {
   return await response.blob();
 }
 
-export async function uploadImage(uri: string, userId: string): Promise<string> {
+export const uploadImage = async (
+  uri: string,
+  userId: string,
+  metadata?: OutfitMetadata
+): Promise<string> => {
   try {
-    // Create a permanent copy of the file
-    const permanentUri = `${FileSystem.cacheDirectory}${Date.now()}.jpg`;
-    await FileSystem.copyAsync({ from: uri, to: permanentUri });
+    console.log('Starting image upload for user:', userId);
 
-    // Use the new URI
-    const response = await fetch(permanentUri);
-    const blob = await response.blob();
+    // Use retry logic for Storage operations
+    return await retryOperation(async () => {
+      const response = await fetch(uri);
+      const blob = await response.blob();
 
-    const filename = permanentUri.substring(permanentUri.lastIndexOf('/') + 1);
-    const storageRef = ref(getStorage(app), `images/${userId}/${filename}`);
+      const storageRef = ref(getStorage(app), `outfits/${userId}/${Date.now()}`);
+      console.log('Created storage reference');
 
-    await uploadBytes(storageRef, blob);
-    return await getDownloadURL(storageRef);
-  } catch (error: any) {
-    console.error("Upload failed:", {
-      error,
-      message: error.message,
-      nativeError: error.nativeErrorCode || error.code
+      console.log('Uploading image to storage...');
+      const snapshot = await uploadBytes(storageRef, blob);
+      console.log('Image uploaded to storage');
+
+      console.log('Getting download URL...');
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      console.log('Got download URL:', downloadURL);
+
+      // Store metadata in Firestore
+      const outfitsRef = collection(db, 'outfits');
+      await addDoc(outfitsRef, {
+        imageUrl: downloadURL,
+        userId: userId,
+        createdAt: Timestamp.now(),
+        ...metadata
+      });
+
+      return downloadURL;
     });
+  } catch (error: any) {
+    console.error('Error uploading image:', error);
     throw error;
   }
-}
+};
 
 // Get all outfits for the current user from Firestore
 export const getUserOutfits = async (userId: string): Promise<Outfit[]> => {

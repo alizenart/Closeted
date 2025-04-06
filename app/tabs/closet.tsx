@@ -78,9 +78,29 @@ export default function ClosetScreen() {
         resizeMode="cover"
       />
       <View className="p-2">
-        <Text className="text-white text-xs text-center truncate">
-          {new Date(item.createdAt).toLocaleDateString()}
-        </Text>
+        {item.details && (
+          <Text className="text-white text-xs mb-1" numberOfLines={2}>
+            {item.details}
+          </Text>
+        )}
+        {item.genre && (
+          <View className="bg-gray-700 px-2 py-1 rounded-full mb-1 self-start">
+            <Text className="text-white text-xs">{item.genre}</Text>
+          </View>
+        )}
+        <View className="flex-row justify-between items-center">
+          <Text className="text-white text-xs">
+            {item.date
+              ? new Date(item.date).toLocaleDateString()
+              : new Date(item.createdAt).toLocaleDateString()}
+          </Text>
+          {item.rating && (
+            <View className="flex-row items-center">
+              <Text className="text-yellow-400 text-xs mr-1">★</Text>
+              <Text className="text-white text-xs">{item.rating}/10</Text>
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
