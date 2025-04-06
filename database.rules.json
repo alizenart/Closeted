@@ -1,0 +1,23 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        // Allow read/write access only if the auth ID matches the user ID
+        ".read": "$uid === auth.uid",
+        ".write": "$uid === auth.uid",
+        "preferences": {
+          ".read": "$uid === auth.uid",
+          ".write": "$uid === auth.uid",
+          // Validate the data structure
+          ".validate": "newData.hasChildren(['aesthetics', 'onboardingCompleted'])",
+          "aesthetics": {
+            ".validate": "newData.isArray()"
+          },
+          "onboardingCompleted": {
+            ".validate": "newData.isBoolean()"
+          }
+        }
+      }
+    }
+  }
+}

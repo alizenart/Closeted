@@ -61,11 +61,13 @@ export default function LandingScreen() {
 
       if (isSignUp) {
         await createUserWithEmailAndPassword(auth, email, password);
+        // For new signups, redirect to onboarding
+        router.replace("/onboarding");
+        return;
       } else {
         await signInWithEmailAndPassword(auth, email, password);
+        router.replace("/tabs");
       }
-
-      router.replace("/tabs");
     } catch (err: any) {
       console.error("Auth error:", err);
       setError(err.message || "An error occurred during authentication");
