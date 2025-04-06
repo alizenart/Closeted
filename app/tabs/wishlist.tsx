@@ -227,14 +227,10 @@ export default function WishlistScreen() {
       setUploadProgress("Uploading to server...");
 
       // Upload the image to Firebase Storage
-      const imageUrl = await uploadImage(
-        selectedImage,
-        `images/wishlist/${userId}`,
-        {
-          details: newItem.notes || "",
-          name: newItem.name,
-        }
-      );
+      const imageUrl = await uploadImage(selectedImage, `wishlist/${userId}`, {
+        details: newItem.notes || "",
+        name: newItem.name,
+      });
 
       if (!imageUrl) {
         throw new Error("Upload failed - no URL returned");
