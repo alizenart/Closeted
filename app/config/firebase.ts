@@ -4,10 +4,9 @@ import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 import { getDatabase } from 'firebase/database';
 
-// Your web app's Firebase configuration
-// Replace these values with your Firebase project configuration
+
 const firebaseConfig = {
-  apiKey: "AIzaSyAhyMT1x78TVTcl_yt0Nb7HPVhcP2ZEKJw",
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
   authDomain: "outfitted-15775.firebaseapp.com",
   projectId: "outfitted-15775",
   storageBucket: "outfitted-15775.firebasestorage.app",

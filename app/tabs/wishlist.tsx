@@ -89,7 +89,6 @@ export default function WishlistScreen() {
         return;
       }
 
-      // Get wishlist items from Firebase Storage
       const storageRef = ref(storage, `images/wishlist/${userId}`);
       console.log("Created storage reference for user wishlist folder");
 
@@ -97,15 +96,12 @@ export default function WishlistScreen() {
       const result = await listAll(storageRef);
       console.log("Found", result.prefixes.length, "items in wishlist");
 
-      // Get items from each folder
       const items = await Promise.all(
         result.prefixes.map(async (folderRef) => {
           try {
-            // Get the image URL
             const imageRef = ref(storage, `${folderRef.fullPath}/image.jpg`);
             const imageUrl = await getDownloadURL(imageRef);
 
-            // Get the metadata
             const metadataRef = ref(
               storage,
               `${folderRef.fullPath}/metadata.json`
@@ -136,7 +132,6 @@ export default function WishlistScreen() {
         })
       );
 
-      // Filter out any failed retrievals and sort by creation date
       const validItems = items
         .filter((item): item is WishlistItem => item !== null)
         .sort(
@@ -163,7 +158,6 @@ export default function WishlistScreen() {
   useEffect(() => {
     loadWishlistItems();
 
-    // Start animation when component mounts
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -236,12 +230,10 @@ export default function WishlistScreen() {
       setIsUploading(true);
       setUploadProgress("Preparing image...");
 
-      // Add a small delay to ensure UI updates
       await new Promise((resolve) => setTimeout(resolve, 100));
 
       setUploadProgress("Uploading to server...");
 
-      // Upload the image to Firebase Storage
       const imageUrl = await uploadImage(selectedImage, `wishlist/${userId}`, {
         details: newItem.notes || "",
         name: newItem.name,
@@ -254,7 +246,6 @@ export default function WishlistScreen() {
       console.log("Image uploaded successfully:", imageUrl);
       setUploadProgress("Upload complete!");
 
-      // Create a new wishlist item with the Firebase URL
       const newWishlistItem: WishlistItem = {
         id: Date.now().toString(),
         imageUrl: imageUrl,
@@ -269,10 +260,8 @@ export default function WishlistScreen() {
         },
       };
 
-      // Add to state
       setWishlistItems([newWishlistItem, ...wishlistItems]);
 
-      // Reset form
       setNewItem({
         name: "",
         notes: "",
@@ -282,7 +271,6 @@ export default function WishlistScreen() {
       setIsUploading(false);
       setUploadProgress("");
 
-      // Show success message
       alert("Item added to wishlist successfully!");
     } catch (error) {
       console.error("Upload failed:", error);
@@ -311,18 +299,14 @@ export default function WishlistScreen() {
         return;
       }
 
-      // Delete from Firebase Storage
       const folderPath = `images/wishlist/${userId}/${selectedItem.id}`;
 
-      // Delete the image file
       const imageRef = ref(storage, `${folderPath}/image.jpg`);
       await deleteObject(imageRef);
 
-      // Delete the metadata file
       const metadataRef = ref(storage, `${folderPath}/metadata.json`);
       await deleteObject(metadataRef);
 
-      // Update local state
       setWishlistItems(
         wishlistItems.filter((item) => item.id !== selectedItem.id)
       );

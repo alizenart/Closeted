@@ -149,7 +149,6 @@ export default function Index() {
         })
       );
 
-      // Filter out any failed retrievals and sort by creation date
       const validItems = items
         .filter((item): item is WishlistItem => item !== null)
         .sort(

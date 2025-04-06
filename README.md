@@ -1,6 +1,8 @@
-# Closeted
+# Outfitted
 
-Spending-conscious closet social app!
+Store your outfit, get feedback on wishlist items to prevent impulse spending and compatibility issues!
+
+Technologies used include: Expo Go Framework, React Native, Firebase for auth and backend/storage, Open AI API, Nativewind CSS for styling
 
 # Welcome to your Expo app 👋
 

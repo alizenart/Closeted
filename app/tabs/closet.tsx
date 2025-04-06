@@ -119,7 +119,6 @@ export default function ClosetScreen() {
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
   const headerAnim = useRef(new Animated.Value(0)).current;
 
-  // Get screen dimensions for responsive layout
   const { width } = Dimensions.get("window");
   const numColumns = 2;
   const gap = 12;
@@ -161,7 +160,6 @@ export default function ClosetScreen() {
   useEffect(() => {
     loadOutfits();
 
-    // Start animation when component mounts
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -194,7 +192,6 @@ export default function ClosetScreen() {
   const getSortedOutfits = () => {
     let sorted = [...outfits];
 
-    // Filter by search query
     if (searchQuery) {
       sorted = sorted.filter(
         (outfit) =>
@@ -203,7 +200,6 @@ export default function ClosetScreen() {
       );
     }
 
-    // Sort by selected criteria
     sorted.sort((a, b) => {
       if (sortBy === "date") {
         const dateA = a.date || a.createdAt;
@@ -279,7 +275,7 @@ export default function ClosetScreen() {
           </View>
         )}
 
-        {/* Search and Sort Controls */}
+        {}
         <Animated.View
           className="p-4 pb-0"
           style={{
