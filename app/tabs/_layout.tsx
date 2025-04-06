@@ -17,7 +17,7 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="home"
         options={{
           title: "Home",
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
@@ -30,13 +30,58 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="about"
+        name="closet"
         options={{
-          title: "About",
+          title: "Closet",
           tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
             <Ionicons
               name={
-                focused ? "information-circle" : "information-circle-outline"
+                focused ? "library" : "library-outline"
+              }
+              color={color}
+              size={24}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="create"
+        options={{
+          title: "Create",
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+            <Ionicons
+              name={
+                focused ? "add" : "add-outline"
+              }
+              color={color}
+              size={24}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="social"
+        options={{
+          title: "Social",
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+            <Ionicons
+              name={
+                focused ? "globe" : "globe-outline"
+              }
+              color={color}
+              size={24}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+            <Ionicons
+              name={
+                focused ? "person" : "person-outline"
               }
               color={color}
               size={24}
@@ -45,5 +90,6 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
+    
   );
 }
