@@ -5,14 +5,14 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#ffd33d',
+        tabBarActiveTintColor: "#ffd33d",
         headerStyle: {
-          backgroundColor: '#25292e',
+          backgroundColor: "#25292e",
         },
         headerShadowVisible: false,
-        headerTintColor: '#fff',
+        headerTintColor: "#fff",
         tabBarStyle: {
-        backgroundColor: '#25292e',
+          backgroundColor: "#25292e",
         },
       }}
     >
@@ -20,7 +20,13 @@ export default function TabLayout() {
         name="home"
         options={{
           title: "Home",
-          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            focused: boolean;
+          }) => (
             <Ionicons
               name={focused ? "home-sharp" : "home-outline"}
               color={color}
@@ -33,11 +39,15 @@ export default function TabLayout() {
         name="closet"
         options={{
           title: "Closet",
-          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            focused: boolean;
+          }) => (
             <Ionicons
-              name={
-                focused ? "library" : "library-outline"
-              }
+              name={focused ? "library" : "library-outline"}
               color={color}
               size={24}
             />
@@ -48,11 +58,34 @@ export default function TabLayout() {
         name="create"
         options={{
           title: "Create",
-          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            focused: boolean;
+          }) => (
             <Ionicons
-              name={
-                focused ? "add" : "add-outline"
-              }
+              name={focused ? "add" : "add-outline"}
+              color={color}
+              size={24}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="wishlist"
+        options={{
+          title: "Wishlist",
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            focused: boolean;
+          }) => (
+            <Ionicons
+              name={focused ? "heart" : "heart-outline"}
               color={color}
               size={24}
             />
@@ -63,11 +96,15 @@ export default function TabLayout() {
         name="social"
         options={{
           title: "Social",
-          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            focused: boolean;
+          }) => (
             <Ionicons
-              name={
-                focused ? "globe" : "globe-outline"
-              }
+              name={focused ? "globe" : "globe-outline"}
               color={color}
               size={24}
             />
@@ -78,11 +115,15 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: "Profile",
-          tabBarIcon: ({ color, focused }: { color: string; focused: boolean }) => (
+          tabBarIcon: ({
+            color,
+            focused,
+          }: {
+            color: string;
+            focused: boolean;
+          }) => (
             <Ionicons
-              name={
-                focused ? "person" : "person-outline"
-              }
+              name={focused ? "person" : "person-outline"}
               color={color}
               size={24}
             />
@@ -90,6 +131,5 @@ export default function TabLayout() {
         }}
       />
     </Tabs>
-    
   );
 }
