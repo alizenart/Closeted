@@ -7,36 +7,51 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Dimensions,
 } from "react-native";
 import { auth } from "../config/firebase";
-import { getUserOutfits, Outfit, uploadImage } from "../utils/firebase";
-import * as ImagePicker from "expo-image-picker";
-import { Ionicons } from "@expo/vector-icons";
+import { getUserOutfitsFromStorage, Outfit } from "../utils/firebase";
 
 export default function OutfitsScreen() {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<string | undefined>(
-    undefined
-  );
+  const [isOffline, setIsOffline] = useState(false);
+
+  // Get screen dimensions for responsive layout
+  const { width } = Dimensions.get("window");
+  const numColumns = 2;
+  const gap = 12;
+  const padding = 16;
+  const itemWidth = (width - padding * 2 - gap) / numColumns;
 
   const loadOutfits = async () => {
     try {
       setError(null);
+      setIsOffline(false);
       const userId = auth.currentUser?.uid;
+      console.log("Current user ID:", userId);
+
       if (!userId) {
+        console.log("No user ID found, user not signed in");
         setError("Please sign in to view your outfits");
         return;
       }
 
-      const userOutfits = await getUserOutfits(userId);
+      console.log("Calling getUserOutfitsFromStorage with userId:", userId);
+      const userOutfits = await getUserOutfitsFromStorage(userId);
+      console.log("Received outfits from storage:", userOutfits);
+
+      if (userOutfits.length === 0) {
+        setIsOffline(true);
+      }
+
       setOutfits(userOutfits);
     } catch (err) {
       console.error("Error loading outfits:", err);
       setError("Failed to load outfits");
+      setIsOffline(true);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -52,55 +67,21 @@ export default function OutfitsScreen() {
     loadOutfits();
   };
 
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setSelectedImage(result.assets[0].uri);
-      }
-    } catch (err) {
-      console.error("Error picking image:", err);
-      setError("Failed to pick image");
-    }
-  };
-
-  const handleImageUpload = async () => {
-    if (!selectedImage) {
-      setError("Please select an image first");
-      return;
-    }
-
-    try {
-      setUploading(true);
-      const userId = auth.currentUser?.uid;
-      if (!userId) {
-        setError("Please sign in to upload images");
-        return;
-      }
-
-      await uploadImage(selectedImage, userId);
-      setSelectedImage(undefined); // Clear the selected image
-      await loadOutfits(); // Reload the outfits after successful upload
-    } catch (err) {
-      console.error("Error uploading image:", err);
-      setError("Failed to upload image");
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const renderOutfit = ({ item }: { item: Outfit }) => (
-    <View className="w-full aspect-square mb-4 rounded-lg overflow-hidden">
+    <View
+      className="mb-4 rounded-xl overflow-hidden bg-gray-800 shadow-lg"
+      style={{ width: itemWidth }}
+    >
       <Image
         source={{ uri: item.imageUrl }}
-        className="w-full h-full"
+        className="w-full aspect-square"
         resizeMode="cover"
       />
+      <View className="p-2">
+        <Text className="text-white text-xs text-center truncate">
+          {new Date(item.createdAt).toLocaleDateString()}
+        </Text>
+      </View>
     </View>
   );
 
@@ -116,82 +97,70 @@ export default function OutfitsScreen() {
     return (
       <View className="flex-1 bg-background items-center justify-center p-4">
         <Text className="text-red-500 text-center mb-4">{error}</Text>
-        <Text className="text-text-secondary text-center">
+        <Text className="text-text-secondary text-center mb-4">
           Pull down to refresh
         </Text>
+        <TouchableOpacity
+          className="bg-blue-500 px-4 py-2 rounded-lg"
+          onPress={loadOutfits}
+        >
+          <Text className="text-white">Try Again</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <View className="flex-1 bg-background">
-      {selectedImage ? (
+      {isOffline && (
+        <View className="bg-yellow-500/20 p-4 mb-2">
+          <Text className="text-yellow-500 text-center">
+            Having trouble connecting to the server. Some features may be
+            limited.
+          </Text>
+        </View>
+      )}
+
+      {outfits.length === 0 ? (
         <View className="flex-1 items-center justify-center p-4">
-          <Image
-            source={{ uri: selectedImage }}
-            className="w-80 h-80 rounded-lg mb-4"
-            resizeMode="cover"
-          />
-          <View className="flex-row space-x-4">
-            <TouchableOpacity
-              onPress={handleImageUpload}
-              disabled={uploading}
-              className="bg-[#4285f4] px-6 py-3 rounded-lg"
-            >
-              {uploading ? (
-                <ActivityIndicator color="#fff" />
-              ) : (
-                <Text className="text-white font-semibold">Use this photo</Text>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => setSelectedImage(undefined)}
-              className="bg-gray-600 px-6 py-3 rounded-lg"
-            >
-              <Text className="text-white font-semibold">Cancel</Text>
-            </TouchableOpacity>
-          </View>
+          <Text className="text-text-secondary text-center mb-4">
+            No outfits yet. Upload some photos to see them here!
+          </Text>
+          <TouchableOpacity
+            className="bg-blue-500 px-4 py-2 rounded-lg"
+            onPress={onRefresh}
+          >
+            <Text className="text-white">Refresh</Text>
+          </TouchableOpacity>
         </View>
       ) : (
-        <>
-          {outfits.length === 0 ? (
-            <View className="flex-1 items-center justify-center p-4">
-              <Text className="text-text-secondary text-center mb-4">
-                No outfits yet. Upload some photos to see them here!
-              </Text>
-              <TouchableOpacity
-                onPress={pickImage}
-                className="bg-[#4285f4] px-6 py-3 rounded-lg"
-              >
-                <Text className="text-white font-semibold">Choose a photo</Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <FlatList
-              data={outfits}
-              renderItem={renderOutfit}
-              keyExtractor={(item) => item.id}
-              contentContainerStyle={{ padding: 16 }}
-              numColumns={2}
-              columnWrapperStyle={{ justifyContent: "space-between" }}
-              refreshControl={
-                <RefreshControl
-                  refreshing={refreshing}
-                  onRefresh={onRefresh}
-                  tintColor="#4285f4"
-                />
-              }
+        <FlatList
+          data={outfits}
+          renderItem={renderOutfit}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={{
+            padding: padding,
+            paddingBottom: padding + 20, // Extra padding at bottom for better scrolling
+          }}
+          numColumns={numColumns}
+          columnWrapperStyle={{
+            justifyContent: "space-between",
+            marginBottom: gap,
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor="#4285f4"
             />
-          )}
-
-          {/* Floating Action Button */}
-          <TouchableOpacity
-            onPress={pickImage}
-            className="absolute bottom-6 right-6 w-14 h-14 bg-[#4285f4] rounded-full items-center justify-center shadow-lg"
-          >
-            <Ionicons name="add" size={30} color="#fff" />
-          </TouchableOpacity>
-        </>
+          }
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <Text className="text-white text-xl font-bold mb-4">
+              Your Outfits
+            </Text>
+          }
+        />
       )}
     </View>
   );
