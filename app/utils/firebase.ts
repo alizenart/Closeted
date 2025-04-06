@@ -2,6 +2,7 @@ import { auth, storage, db, app } from '../config/firebase';
 import { getStorage, ref, uploadBytes, getDownloadURL, listAll } from 'firebase/storage';
 import { collection, addDoc, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import * as FileSystem from 'expo-file-system';
+import { analyzeClothingImage } from './chatgpt';
 
 export interface Outfit {
   id: string;
@@ -90,35 +91,41 @@ export const uploadImage = async (
         const imageSnapshot = await uploadBytes(imageRef, blob);
         console.log('Image uploaded to storage successfully');
 
-        // Create and upload metadata
+        // Get the download URL for the image
+        console.log('Getting download URL...');
+        const url = await getDownloadURL(imageSnapshot.ref);
+        console.log('Got download URL:', url);
+
+        // Analyze the clothing in the image
+        console.log('Analyzing clothing in image...');
+        const clothingAnalysis = await analyzeClothingImage(url);
+        console.log('=== Clothing Analysis Results ===');
+        console.log('Outerwear:', clothingAnalysis.outerwear);
+        console.log('Top:', clothingAnalysis.top);
+        console.log('Bottom:', clothingAnalysis.bottom);
+        console.log('Shoes:', clothingAnalysis.shoes);
+        console.log('===============================');
+
+        // Create and upload metadata with analysis
         const metadataContent = {
           details: metadata?.details || '',
           rating: metadata?.rating || 0,
           genre: metadata?.genre || '',
           date: metadata?.date || new Date().toISOString(),
           createdAt: new Date().toISOString(),
-          userId: userId
+          userId: userId,
+          imageUrl: url,
+          clothingAnalysis: {
+            outerwear: clothingAnalysis.outerwear || '',
+            top: clothingAnalysis.top || '',
+            bottom: clothingAnalysis.bottom || '',
+            shoes: clothingAnalysis.shoes || ''
+          }
         };
 
         const metadataBlob = new Blob([JSON.stringify(metadataContent)], { type: 'application/json' });
         await uploadBytes(metadataRef, metadataBlob);
-        console.log('Metadata uploaded to storage successfully');
-
-        // Get the download URL for the image
-        console.log('Getting download URL...');
-        const url = await getDownloadURL(imageSnapshot.ref);
-        console.log('Got download URL:', url);
-
-        // Store reference in Firestore for easier querying
-        const outfitsRef = collection(db, 'outfits');
-        await addDoc(outfitsRef, {
-          imageUrl: url,
-          folderPath: `images/${userId}/${folderName}`,
-          userId: userId,
-          createdAt: Timestamp.now(),
-          ...metadata
-        });
-        console.log('Firestore document created successfully');
+        console.log('Metadata with analysis uploaded to storage successfully');
 
         return url;
       } catch (error) {
