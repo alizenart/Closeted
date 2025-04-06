@@ -38,6 +38,12 @@ interface WishlistItem {
   name: string;
   notes?: string;
   createdAt: string;
+  clothingAnalysis?: {
+    outerwear: string;
+    top: string;
+    bottom: string;
+    shoes: string;
+  };
 }
 
 export default function WishlistScreen() {
@@ -112,6 +118,12 @@ export default function WishlistScreen() {
               name: metadata.name || "",
               notes: metadata.notes || "",
               createdAt: metadata.createdAt || new Date().toISOString(),
+              clothingAnalysis: metadata.clothingAnalysis || {
+                outerwear: "",
+                top: "",
+                bottom: "",
+                shoes: "",
+              },
             };
             return wishlistItem;
           } catch (error) {
@@ -246,6 +258,12 @@ export default function WishlistScreen() {
         name: newItem.name || "",
         notes: newItem.notes,
         createdAt: new Date().toISOString(),
+        clothingAnalysis: newItem.clothingAnalysis || {
+          outerwear: "",
+          top: "",
+          bottom: "",
+          shoes: "",
+        },
       };
 
       // Add to state

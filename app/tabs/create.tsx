@@ -5,6 +5,7 @@ import {
   TextInput,
   ScrollView,
   TouchableOpacity,
+  Animated,
 } from "react-native";
 import { Image } from "expo-image";
 import { useState, useEffect } from "react";
@@ -37,12 +38,48 @@ const GENRES = [
   "Other",
 ];
 
+const UploadProgress = ({
+  stage,
+  progress,
+}: {
+  stage: string;
+  progress: number;
+}) => {
+  const progressAnim = new Animated.Value(0);
+
+  useEffect(() => {
+    Animated.timing(progressAnim, {
+      toValue: progress,
+      duration: 500,
+      useNativeDriver: false,
+    }).start();
+  }, [progress]);
+
+  const width = progressAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0%", "100%"],
+  });
+
+  return (
+    <View className="w-full bg-emerald-100 rounded-xl p-4 mb-4">
+      <Text className="text-emerald-700 font-semibold mb-2">{stage}</Text>
+      <View className="h-2 bg-white rounded-full overflow-hidden">
+        <Animated.View
+          className="h-full bg-emerald-600 rounded-full"
+          style={{ width }}
+        />
+      </View>
+    </View>
+  );
+};
+
 export default function CreateScreen() {
   const [selectedImage, setSelectedImage] = useState<string | undefined>(
     undefined
   );
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<string>("");
+  const [uploadStage, setUploadStage] = useState<string>("");
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [details, setDetails] = useState<string>("");
   const [rating, setRating] = useState<number>(5);
   const [genre, setGenre] = useState<string>("");
@@ -85,12 +122,15 @@ export default function CreateScreen() {
 
     try {
       setIsUploading(true);
-      setUploadProgress("Preparing image...");
 
-      // Add a small delay to ensure UI updates
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Stage 1: Preparing image
+      setUploadStage("Preparing image...");
+      setUploadProgress(0.2);
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      setUploadProgress("Uploading to server...");
+      // Stage 2: Uploading to server
+      setUploadStage("Uploading to server...");
+      setUploadProgress(0.4);
       const imageUrl = await uploadImage(selectedImage, userId, {
         details: details.trim(),
         rating,
@@ -102,26 +142,40 @@ export default function CreateScreen() {
         throw new Error("Upload failed - no URL returned");
       }
 
-      console.log("Image uploaded successfully:", imageUrl);
-      setUploadProgress("Upload complete!");
+      // Stage 3: Analyzing clothing
+      setUploadStage("Analyzing clothing...");
+      setUploadProgress(0.6);
+      await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Reset all states immediately after successful upload
+      // Stage 4: Processing metadata
+      setUploadStage("Processing metadata...");
+      setUploadProgress(0.8);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Stage 5: Complete
+      setUploadStage("Upload complete!");
+      setUploadProgress(1);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Reset all states
       setSelectedImage(undefined);
       setDetails("");
       setRating(5);
       setGenre("");
       setDate(new Date());
       setIsUploading(false);
-      setUploadProgress("");
+      setUploadStage("");
+      setUploadProgress(0);
 
-      // Show success message and navigate to outfits tab
+      // Show success message and navigate
       alert("Image uploaded successfully!");
       router.push("/tabs/closet");
     } catch (error) {
       console.error("Upload failed:", error);
       alert("Failed to upload image. Please try again.");
       setIsUploading(false);
-      setUploadProgress("");
+      setUploadStage("");
+      setUploadProgress(0);
     }
   };
 
@@ -227,6 +281,10 @@ export default function CreateScreen() {
           </View>
         </View>
 
+        {isUploading && (
+          <UploadProgress stage={uploadStage} progress={uploadProgress} />
+        )}
+
         <TouchableOpacity
           onPress={handleUpload}
           disabled={!selectedImage || isUploading}
@@ -236,16 +294,9 @@ export default function CreateScreen() {
               : "bg-emerald-600 shadow-md shadow-emerald-200"
           }`}
         >
-          {isUploading ? (
-            <View className="flex-row items-center justify-center">
-              <ActivityIndicator color="#25292e" />
-              <Text className="text-white ml-2">Uploading...</Text>
-            </View>
-          ) : (
-            <Text className="text-white text-center font-semibold text-lg">
-              Upload Outfit
-            </Text>
-          )}
+          <Text className="text-white text-center font-semibold text-lg">
+            {isUploading ? "Uploading..." : "Upload Outfit"}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

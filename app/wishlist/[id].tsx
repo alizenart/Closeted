@@ -14,6 +14,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { auth, storage, rtdb } from "../config/firebase";
 import { ref as storageRef, getDownloadURL } from "firebase/storage";
 import { ref as dbRef, set, onValue, off } from "firebase/database";
+import { ref, listAll } from "firebase/storage";
 
 // Define a WishlistItem type
 interface WishlistItem {
@@ -162,6 +163,8 @@ export default function WishlistItemDetailScreen() {
       const metadataResponse = await fetch(await getDownloadURL(metadataRef));
       const metadata = await metadataResponse.json();
 
+      console.log("Wishlist item metadata:", metadata);
+
       const wishlistItem: WishlistItem = {
         id: id as string,
         imageUrl,
@@ -174,63 +177,157 @@ export default function WishlistItemDetailScreen() {
 
       setItem(wishlistItem);
 
-      // Check for existing timer
-      const timerRef = dbRef(rtdb, `timers/${userId}/${id}`);
-      onValue(timerRef, (snapshot) => {
-        const timerData = snapshot.val();
-        if (timerData) {
-          const now = Date.now();
-          if (now < timerData.endTime) {
-            setTimeRemaining(timerData.endTime - now);
-            setTimerActive(true);
+      // Get all outfits from the user's closet
+      const outfitsRef = ref(storage, `images/${userId}`);
+      console.log("Loading outfits from:", `images/${userId}`);
+      const outfitsResult = await listAll(outfitsRef);
+      console.log("Found outfits:", outfitsResult.prefixes.length);
+
+      // Get outfits with their metadata
+      const outfits = await Promise.all(
+        outfitsResult.prefixes.map(async (folderRef) => {
+          try {
+            // Skip wishlist items
+            if (folderRef.fullPath.includes("wishlist")) {
+              return null;
+            }
+
+            const imageRef = ref(storage, `${folderRef.fullPath}/image.jpg`);
+            const metadataRef = ref(
+              storage,
+              `${folderRef.fullPath}/metadata.json`
+            );
+
+            const [imageUrl, metadataUrl] = await Promise.all([
+              getDownloadURL(imageRef),
+              getDownloadURL(metadataRef),
+            ]);
+
+            const metadataResponse = await fetch(metadataUrl);
+            const metadata = await metadataResponse.json();
+            console.log("Outfit metadata structure:", {
+              id: folderRef.name,
+              hasClothingAnalysis: !!metadata.clothingAnalysis,
+              clothingAnalysis: metadata.clothingAnalysis,
+              fullMetadata: metadata,
+            });
+
+            return {
+              id: folderRef.name,
+              imageUrl,
+              metadata,
+            };
+          } catch (error) {
+            console.error(`Error processing outfit ${folderRef.name}:`, error);
+            return null;
           }
-        }
-      });
+        })
+      );
 
-      // Mock compatibility score (0-100) - you can implement real logic later
-      setCompatibilityScore(Math.floor(Math.random() * 100));
+      // Filter out failed retrievals
+      const validOutfits = outfits.filter(
+        (outfit): outfit is NonNullable<typeof outfit> => outfit !== null
+      );
+      console.log("Valid outfits:", validOutfits.length);
 
-      // Mock similar items from closet - you can implement real logic later
-      const mockSimilarItems: ClosetItem[] = [
-        {
-          id: "c1",
-          imageUrl:
-            "https://images.unsplash.com/photo-1551028719-00167b16eac5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-          name: "Blue Denim Jeans",
-          genre: "Casual",
-          rating: 4,
-        },
-        {
-          id: "c2",
-          imageUrl:
-            "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-          name: "White T-Shirt",
-          genre: "Casual",
-          rating: 5,
-        },
-      ];
-      setSimilarItems(mockSimilarItems);
+      // Calculate similarity scores based on clothing analysis
+      const similarItems = validOutfits
+        .map((outfit) => {
+          const wishlistAnalysis = metadata.clothingAnalysis || {};
+          const outfitAnalysis = outfit.metadata.clothingAnalysis || {};
 
-      // Mock recommendations - you can implement real logic later
-      const mockRecommendations: WishlistItem[] = [
-        {
-          id: "r1",
-          imageUrl:
-            "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-          name: "Matching Belt",
-          notes: "Brown leather, size 32",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "r2",
-          imageUrl:
-            "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-          name: "Stylish Hat",
-          notes: "Beige, one size",
-          createdAt: new Date().toISOString(),
-        },
-      ];
-      setRecommendations(mockRecommendations);
+          console.log("Comparing:", {
+            wishlist: wishlistAnalysis,
+            outfit: outfitAnalysis,
+          });
+
+          // Calculate similarity score (more flexible matching)
+          let score = 0;
+          let total = 0;
+
+          const compareItems = (item1: string, item2: string) => {
+            if (!item1 || !item2) return 0;
+
+            const words1 = item1.toLowerCase().split(/\s+/);
+            const words2 = item2.toLowerCase().split(/\s+/);
+
+            // Count matching words
+            const matches = words1.filter((word) =>
+              words2.some((w2) => w2.includes(word) || word.includes(w2))
+            );
+
+            const similarity =
+              matches.length / Math.max(words1.length, words2.length);
+            console.log(
+              "Comparing:",
+              item1,
+              "with",
+              item2,
+              "similarity:",
+              similarity
+            );
+            return similarity;
+          };
+
+          if (wishlistAnalysis.top && outfitAnalysis.top) {
+            const similarity = compareItems(
+              wishlistAnalysis.top,
+              outfitAnalysis.top
+            );
+            score += similarity;
+            total += 1;
+            console.log("Top similarity:", similarity);
+          }
+          if (wishlistAnalysis.bottom && outfitAnalysis.bottom) {
+            const similarity = compareItems(
+              wishlistAnalysis.bottom,
+              outfitAnalysis.bottom
+            );
+            score += similarity;
+            total += 1;
+            console.log("Bottom similarity:", similarity);
+          }
+          if (wishlistAnalysis.outerwear && outfitAnalysis.outerwear) {
+            const similarity = compareItems(
+              wishlistAnalysis.outerwear,
+              outfitAnalysis.outerwear
+            );
+            score += similarity;
+            total += 1;
+            console.log("Outerwear similarity:", similarity);
+          }
+          if (wishlistAnalysis.shoes && outfitAnalysis.shoes) {
+            const similarity = compareItems(
+              wishlistAnalysis.shoes,
+              outfitAnalysis.shoes
+            );
+            score += similarity;
+            total += 1;
+            console.log("Shoes similarity:", similarity);
+          }
+
+          const totalScore = total > 0 ? (score / total) * 100 : 0;
+          console.log("Total similarity score:", totalScore);
+
+          return {
+            id: outfit.id,
+            imageUrl: outfit.imageUrl,
+            name: outfit.metadata.details || "Outfit",
+            genre: outfit.metadata.genre || "Unknown",
+            rating: Math.round(totalScore / 20), // Convert to 1-5 star rating
+            similarityScore: totalScore,
+          };
+        })
+        .sort((a, b) => b.similarityScore - a.similarityScore); // Sort by similarity score in descending order
+
+      // Filter items but ensure at least one is shown
+      const filteredItems = similarItems.filter(
+        (item, index) => item.similarityScore >= 20 || index === 0
+      );
+
+      console.log("Similar items after filtering:", filteredItems.length);
+      setSimilarItems(filteredItems);
+      setCompatibilityScore(Math.floor(Math.random() * 100)); // Keep random compatibility score for now
     } catch (err) {
       console.error("Error loading item details:", err);
       setError("Failed to load item details");

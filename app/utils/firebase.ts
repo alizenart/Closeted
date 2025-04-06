@@ -99,13 +99,13 @@ export const uploadImage = async (
 
         // Analyze the clothing in the image
         console.log('Analyzing clothing in image...');
-        //const clothingAnalysis = await analyzeClothingImage(url);
-        //console.log('=== Clothing Analysis Results ===');
-        //console.log('Outerwear:', clothingAnalysis.outerwear);
-        //console.log('Top:', clothingAnalysis.top);
-        //console.log('Bottom:', clothingAnalysis.bottom);
-        //console.log('Shoes:', clothingAnalysis.shoes);
-        //console.log('===============================');
+        const clothingAnalysis = await analyzeClothingImage(url);
+        console.log('=== Clothing Analysis Results ===');
+        console.log('Outerwear:', clothingAnalysis.outerwear);
+        console.log('Top:', clothingAnalysis.top);
+        console.log('Bottom:', clothingAnalysis.bottom);
+        console.log('Shoes:', clothingAnalysis.shoes);
+        console.log('===============================');
 
         // Create and upload metadata with analysis
         const metadataContent = {
@@ -116,12 +116,12 @@ export const uploadImage = async (
           createdAt: new Date().toISOString(),
           userId: userId,
           imageUrl: url,
-          /*clothingAnalysis: {
+          clothingAnalysis: {
             outerwear: clothingAnalysis.outerwear || '',
             top: clothingAnalysis.top || '',
             bottom: clothingAnalysis.bottom || '',
             shoes: clothingAnalysis.shoes || ''
-          }*/
+          }
         };
 
         const metadataBlob = new Blob([JSON.stringify(metadataContent)], { type: 'application/json' });

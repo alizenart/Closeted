@@ -7,6 +7,7 @@ import React, {
   ViewStyle,
   Dimensions,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
 import { Image } from "react-native";
 import { useState, useEffect } from "react";
@@ -56,6 +57,35 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
   const [loadingWishlist, setLoadingWishlist] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadOutfits = async () => {
+    try {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        console.log("No user ID found, user not signed in");
+        return;
+      }
+
+      const userOutfits = await getUserOutfitsFromStorage(userId);
+      setOutfits(userOutfits);
+    } catch (err) {
+      console.error("Error loading outfits:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([loadOutfits(), loadWishlistItems()]);
+    } catch (error) {
+      console.error("Error refreshing:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const pickImageAsync = async () => {
     console.log("pickImageAsync");
@@ -137,23 +167,6 @@ export default function Index() {
 
   // Load outfits when component mounts
   useEffect(() => {
-    const loadOutfits = async () => {
-      try {
-        const userId = auth.currentUser?.uid;
-        if (!userId) {
-          console.log("No user ID found, user not signed in");
-          return;
-        }
-
-        const userOutfits = await getUserOutfitsFromStorage(userId);
-        setOutfits(userOutfits);
-      } catch (err) {
-        console.error("Error loading outfits:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadOutfits();
     loadWishlistItems();
   }, []);
@@ -183,6 +196,14 @@ export default function Index() {
       <ScrollView
         className="flex-1"
         contentContainerStyle={{ paddingBottom: 20 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#059669"
+            colors={["#059669"]}
+          />
+        }
       >
         {/* recommendations section */}
         <View className="px-4 py-6 space-y-4">

@@ -1,8 +1,30 @@
 import React from "react";
-import { View, Text, TouchableOpacity, ScrollView, Image } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  Alert,
+} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { auth } from "../config/firebase";
+import { signOut } from "firebase/auth";
+import { useRouter } from "expo-router";
 
 export default function ProfileScreen() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.replace("/");
+    } catch (error) {
+      console.error("Error signing out:", error);
+      Alert.alert("Error", "Failed to sign out. Please try again.");
+    }
+  };
+
   return (
     <View className="flex-1 bg-gradient-to-b from-emerald-50 to-white">
       <ScrollView className="flex-1" contentContainerStyle={{ padding: 16 }}>
@@ -126,7 +148,7 @@ export default function ProfileScreen() {
         {/* Logout Button */}
         <TouchableOpacity
           className="bg-red-50 py-4 rounded-xl mb-4"
-          onPress={() => {}}
+          onPress={handleLogout}
         >
           <Text className="text-red-600 text-center font-semibold">
             Log Out
