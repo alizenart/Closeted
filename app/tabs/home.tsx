@@ -1,6 +1,17 @@
-import { ScrollView, View, StyleSheet, Text, TouchableOpacity, ViewStyle, Dimensions} from "react-native";
+import React, {
+  ScrollView,
+  View,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  ViewStyle,
+  Dimensions,
+} from "react-native";
 import { Image } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { router } from "expo-router";
+import { auth } from "../config/firebase";
+import { getUserOutfitsFromStorage, Outfit } from "../utils/firebase";
 
 interface ButtonProps {
   label: string;
@@ -8,7 +19,7 @@ interface ButtonProps {
   style?: ViewStyle; // Allow the style prop
 }
 
-const Button: React.FC<ButtonProps> = ({ label, onPress, style }) => {
+const Button = ({ label, onPress, style }: ButtonProps) => {
   return (
     <TouchableOpacity onPress={onPress} style={[styles.button, style]}>
       <Text style={styles.label}>{label}</Text>
@@ -26,6 +37,8 @@ export default function Index() {
   const [selectedImage, setSelectedImage] = useState<string | undefined>(
     undefined
   );
+  const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const pickImageAsync = async () => {
     console.log("pickImageAsync");
@@ -42,19 +55,51 @@ export default function Index() {
       alert("You did not select any image.");
     }
   };
+
+  // Load outfits when component mounts
+  useEffect(() => {
+    const loadOutfits = async () => {
+      try {
+        const userId = auth.currentUser?.uid;
+        if (!userId) {
+          console.log("No user ID found, user not signed in");
+          return;
+        }
+
+        const userOutfits = await getUserOutfitsFromStorage(userId);
+        setOutfits(userOutfits);
+      } catch (err) {
+        console.error("Error loading outfits:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadOutfits();
+  }, []);
+
+  // Navigate to outfits tab
+  const navigateToOutfits = () => {
+    router.push("/tabs/outfits");
+  };
+
   return (
     <View style={styles.container}>
       {/* recommendations section */}
       <View style={styles.recommendationsContainer}>
         <Text style={styles.recommendationsTitle}>RECOMMENDATIONS</Text>
-        <Text style={styles.recommendationsSubtitle}>based on your wishlist</Text>
+        <Text style={styles.recommendationsSubtitle}>
+          based on your wishlist
+        </Text>
 
         {/* Rows of Objects */}
         <View style={styles.row}>
           {/* First Row */}
           <View style={styles.objectContainer}>
             <Image
-              source={{ uri: "https://saltymom.net/wp-content/uploads/2016/08/diy-sew-a-square-linen-japanese-dress-saltymom-net.png?w=640" }}
+              source={{
+                uri: "https://saltymom.net/wp-content/uploads/2016/08/diy-sew-a-square-linen-japanese-dress-saltymom-net.png?w=640",
+              }}
               style={styles.squareImage}
             />
             <View style={styles.buttonsContainer}>
@@ -69,7 +114,9 @@ export default function Index() {
           {/* Second Row */}
           <View style={styles.objectContainer}>
             <Image
-              source={{ uri: "https://saltymom.net/wp-content/uploads/2016/08/diy-sew-a-square-linen-japanese-dress-saltymom-net.png?w=640" }}
+              source={{
+                uri: "https://saltymom.net/wp-content/uploads/2016/08/diy-sew-a-square-linen-japanese-dress-saltymom-net.png?w=640",
+              }}
               style={styles.squareImage}
             />
             <View style={styles.buttonsContainer}>
@@ -79,43 +126,39 @@ export default function Index() {
             </View>
           </View>
         </View>
-    </View>
+      </View>
       <View style={styles.footerContainer}>
         <Text style={styles.recommendationsTitle}>YOUR OUTFITS</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={true} style={styles.scrollContainer}>
-        {/* Pictures of Already Uploaded Outfits */}
-        <View style={styles.columnContainer}>
-          <Image
-            source={require('../../imgs/img1.jpeg')}
-            style={styles.outfitimage}
-          />
-          <Image
-            source={require('../../imgs/img2.jpeg')}
-            style={styles.outfitimage}
-          />
-          <Image
-            source={require('../../imgs/img3.jpg')}
-            style={styles.outfitimage}
-          />
-          <Image
-            source={require('../../imgs/img4.jpg')}
-            style={styles.outfitimage}
-          />
-          <Image
-            source={require('../../imgs/img5.png')}
-            style={styles.outfitimage}
-          />
-          <Image
-            source={require('../../imgs/img6.jpg')}
-            style={styles.outfitimage}
-          />
-          
-
-
-        </View>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={true}
+          style={styles.scrollContainer}
+        >
+          {/* Pictures of Already Uploaded Outfits */}
+          <View style={styles.columnContainer}>
+            {loading ? (
+              <Text style={styles.loadingText}>Loading outfits...</Text>
+            ) : outfits.length > 0 ? (
+              <>
+                {outfits.slice(0, 5).map((outfit) => (
+                  <Image
+                    key={outfit.id}
+                    source={{ uri: outfit.imageUrl }}
+                    style={styles.outfitimage}
+                  />
+                ))}
+                <TouchableOpacity
+                  style={styles.seeAllCard}
+                  onPress={navigateToOutfits}
+                >
+                  <Text style={styles.seeAllText}>See all outfits →</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <Text style={styles.noOutfitsText}>No outfits yet</Text>
+            )}
+          </View>
         </ScrollView>
-        
-        
       </View>
     </View>
   );
@@ -135,8 +178,35 @@ const styles = StyleSheet.create({
     height: 250,
     borderRadius: 18,
     marginHorizontal: 10,
-    marginVertical: 15
-    ,
+    marginVertical: 15,
+  },
+  seeAllCard: {
+    width: 100,
+    height: 250,
+    borderRadius: 18,
+    marginHorizontal: 10,
+    marginVertical: 15,
+    backgroundColor: "#FFFDD0",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  seeAllText: {
+    color: "#406e5e",
+    fontSize: 16,
+    fontWeight: "bold",
+    textAlign: "center",
+  },
+  loadingText: {
+    color: "white",
+    fontSize: 16,
+    marginVertical: 15,
+    marginHorizontal: 10,
+  },
+  noOutfitsText: {
+    color: "white",
+    fontSize: 16,
+    marginVertical: 15,
+    marginHorizontal: 10,
   },
   container: {
     flex: 1,
@@ -193,8 +263,8 @@ const styles = StyleSheet.create({
   footerContainer: {
     backgroundColor: "#406e5e",
     width: "100%",
-    height: screenHeight * 2 / 3,
-    padding:20,
+    height: (screenHeight * 2) / 3,
+    padding: 20,
   },
   imageContainer: {
     flex: 1,
