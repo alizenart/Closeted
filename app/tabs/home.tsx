@@ -83,6 +83,11 @@ export default function Index() {
     router.push("/tabs/closet");
   };
 
+  // Navigate to create tab
+  const navigateToCreate = () => {
+    router.push("/tabs/create");
+  };
+
   return (
     <View style={styles.container}>
       {/* recommendations section */}
@@ -155,7 +160,17 @@ export default function Index() {
                 </TouchableOpacity>
               </>
             ) : (
-              <Text style={styles.noOutfitsText}>No outfits yet</Text>
+              <TouchableOpacity
+                style={styles.createOutfitCard}
+                onPress={navigateToCreate}
+              >
+                <Text style={styles.createOutfitText}>
+                  Create your first outfit
+                </Text>
+                <Text style={styles.createOutfitSubtext}>
+                  Tap to get started →
+                </Text>
+              </TouchableOpacity>
             )}
           </View>
         </ScrollView>
@@ -207,6 +222,29 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginVertical: 15,
     marginHorizontal: 10,
+  },
+  createOutfitCard: {
+    width: 200,
+    height: 250,
+    borderRadius: 18,
+    marginHorizontal: 10,
+    marginVertical: 15,
+    backgroundColor: "#FFFDD0",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 15,
+  },
+  createOutfitText: {
+    color: "#406e5e",
+    fontSize: 18,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  createOutfitSubtext: {
+    color: "#406e5e",
+    fontSize: 14,
+    textAlign: "center",
   },
   container: {
     flex: 1,
