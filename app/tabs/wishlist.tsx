@@ -14,9 +14,22 @@ import {
   ScrollView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { auth } from "../config/firebase";
+import { auth, db, storage } from "../config/firebase";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
+import { uploadImage } from "../utils/firebase";
+import {
+  collection,
+  addDoc,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  Timestamp,
+  doc,
+  setDoc,
+} from "firebase/firestore";
+import { ref, listAll, getDownloadURL } from "firebase/storage";
 
 // Define a WishlistItem type
 interface WishlistItem {
@@ -34,6 +47,8 @@ export default function WishlistScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [isAddingItem, setIsAddingItem] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string>("");
   const [newItem, setNewItem] = useState<Partial<WishlistItem>>({
     name: "",
     notes: "",
@@ -51,7 +66,7 @@ export default function WishlistScreen() {
   const padding = 16;
   const itemWidth = (width - padding * 2 - gap) / numColumns;
 
-  // Mock function to load wishlist items (replace with actual Firebase function)
+  // Load wishlist items from Firebase Storage
   const loadWishlistItems = async () => {
     try {
       setError(null);
@@ -65,27 +80,61 @@ export default function WishlistScreen() {
         return;
       }
 
-      // Mock data - replace with actual Firebase call
-      const mockItems: WishlistItem[] = [
-        {
-          id: "1",
-          imageUrl:
-            "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-          name: "Vintage Denim Jacket",
-          notes: "Size M, light wash",
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: "2",
-          imageUrl:
-            "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-          name: "Leather Boots",
-          notes: "Brown, size 9",
-          createdAt: new Date().toISOString(),
-        },
-      ];
+      // Get wishlist items from Firebase Storage
+      const storageRef = ref(storage, `images/wishlist/${userId}`);
+      console.log("Created storage reference for user wishlist folder");
 
-      setWishlistItems(mockItems);
+      console.log("Listing all folders in wishlist directory...");
+      const result = await listAll(storageRef);
+      console.log("Found", result.prefixes.length, "items in wishlist");
+
+      // Get items from each folder
+      const items = await Promise.all(
+        result.prefixes.map(async (folderRef) => {
+          try {
+            // Get the image URL
+            const imageRef = ref(storage, `${folderRef.fullPath}/image.jpg`);
+            const imageUrl = await getDownloadURL(imageRef);
+
+            // Get the metadata
+            const metadataRef = ref(
+              storage,
+              `${folderRef.fullPath}/metadata.json`
+            );
+            const metadataResponse = await fetch(
+              await getDownloadURL(metadataRef)
+            );
+            const metadata = await metadataResponse.json();
+
+            const wishlistItem: WishlistItem = {
+              id: folderRef.name,
+              imageUrl,
+              name: metadata.name || "",
+              notes: metadata.notes || "",
+              createdAt: metadata.createdAt || new Date().toISOString(),
+            };
+            return wishlistItem;
+          } catch (error) {
+            console.error(`Error processing folder ${folderRef.name}:`, error);
+            return null;
+          }
+        })
+      );
+
+      // Filter out any failed retrievals and sort by creation date
+      const validItems = items
+        .filter((item): item is WishlistItem => item !== null)
+        .sort(
+          (a, b) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+
+      console.log(
+        "Processed",
+        validItems.length,
+        "wishlist items from storage"
+      );
+      setWishlistItems(validItems);
     } catch (err) {
       console.error("Error loading wishlist items:", err);
       setError("Failed to load wishlist items");
@@ -151,7 +200,7 @@ export default function WishlistScreen() {
     }
   };
 
-  const handleAddItem = () => {
+  const handleAddItem = async () => {
     if (!selectedImage) {
       alert("Please select an image first");
       return;
@@ -162,25 +211,68 @@ export default function WishlistScreen() {
       return;
     }
 
-    // Create a new wishlist item
-    const newWishlistItem: WishlistItem = {
-      id: Date.now().toString(),
-      imageUrl: selectedImage,
-      name: newItem.name || "",
-      notes: newItem.notes,
-      createdAt: new Date().toISOString(),
-    };
+    const userId = auth.currentUser?.uid;
+    if (!userId) {
+      alert("Please sign in to add items to your wishlist");
+      return;
+    }
 
-    // Add to state
-    setWishlistItems([newWishlistItem, ...wishlistItems]);
+    try {
+      setIsUploading(true);
+      setUploadProgress("Preparing image...");
 
-    // Reset form
-    setNewItem({
-      name: "",
-      notes: "",
-    });
-    setSelectedImage(undefined);
-    setIsAddingItem(false);
+      // Add a small delay to ensure UI updates
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      setUploadProgress("Uploading to server...");
+
+      // Upload the image to Firebase Storage
+      const imageUrl = await uploadImage(
+        selectedImage,
+        `images/wishlist/${userId}`,
+        {
+          details: newItem.notes || "",
+          name: newItem.name,
+        }
+      );
+
+      if (!imageUrl) {
+        throw new Error("Upload failed - no URL returned");
+      }
+
+      console.log("Image uploaded successfully:", imageUrl);
+      setUploadProgress("Upload complete!");
+
+      // Create a new wishlist item with the Firebase URL
+      const newWishlistItem: WishlistItem = {
+        id: Date.now().toString(),
+        imageUrl: imageUrl,
+        name: newItem.name || "",
+        notes: newItem.notes,
+        createdAt: new Date().toISOString(),
+      };
+
+      // Add to state
+      setWishlistItems([newWishlistItem, ...wishlistItems]);
+
+      // Reset form
+      setNewItem({
+        name: "",
+        notes: "",
+      });
+      setSelectedImage(undefined);
+      setIsAddingItem(false);
+      setIsUploading(false);
+      setUploadProgress("");
+
+      // Show success message
+      alert("Item added to wishlist successfully!");
+    } catch (error) {
+      console.error("Upload failed:", error);
+      alert("Failed to upload image. Please try again.");
+      setIsUploading(false);
+      setUploadProgress("");
+    }
   };
 
   const handleItemPress = (item: WishlistItem) => {
@@ -429,11 +521,18 @@ export default function WishlistScreen() {
               <TouchableOpacity
                 className="bg-emerald-600 py-4 rounded-xl mb-4 shadow-md shadow-emerald-200"
                 onPress={handleAddItem}
-                disabled={!selectedImage || !newItem.name}
+                disabled={!selectedImage || !newItem.name || isUploading}
               >
-                <Text className="text-white text-center font-semibold text-lg">
-                  Add to Wishlist
-                </Text>
+                {isUploading ? (
+                  <View className="flex-row items-center justify-center">
+                    <ActivityIndicator color="white" />
+                    <Text className="text-white ml-2">{uploadProgress}</Text>
+                  </View>
+                ) : (
+                  <Text className="text-white text-center font-semibold text-lg">
+                    Add to Wishlist
+                  </Text>
+                )}
               </TouchableOpacity>
             </ScrollView>
           </View>

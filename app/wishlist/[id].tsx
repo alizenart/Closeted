@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
+import { auth, storage } from "../config/firebase";
+import { ref, getDownloadURL } from "firebase/storage";
 
 // Define a WishlistItem type
 interface WishlistItem {
@@ -47,78 +49,81 @@ export default function WishlistItemDetailScreen() {
       setLoading(true);
       setError(null);
 
-      // Mock data - replace with actual Firebase call
-      const mockItems: WishlistItem[] = [
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        setError("Please sign in to view wishlist items");
+        return;
+      }
+
+      // Get the image URL
+      const imageRef = ref(
+        storage,
+        `images/wishlist/${userId}/${id}/image.jpg`
+      );
+      const imageUrl = await getDownloadURL(imageRef);
+
+      // Get the metadata
+      const metadataRef = ref(
+        storage,
+        `images/wishlist/${userId}/${id}/metadata.json`
+      );
+      const metadataResponse = await fetch(await getDownloadURL(metadataRef));
+      const metadata = await metadataResponse.json();
+
+      const wishlistItem: WishlistItem = {
+        id: id as string,
+        imageUrl,
+        name: metadata.name || "",
+        notes: metadata.notes || "",
+        createdAt: metadata.createdAt || new Date().toISOString(),
+      };
+
+      setItem(wishlistItem);
+
+      // Mock compatibility score (0-100) - you can implement real logic later
+      setCompatibilityScore(Math.floor(Math.random() * 100));
+
+      // Mock similar items from closet - you can implement real logic later
+      const mockSimilarItems: ClosetItem[] = [
         {
-          id: "1",
+          id: "c1",
           imageUrl:
-            "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-          name: "Vintage Denim Jacket",
-          notes: "Size M, light wash",
+            "https://images.unsplash.com/photo-1551028719-00167b16eac5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+          name: "Blue Denim Jeans",
+          genre: "Casual",
+          rating: 4,
+        },
+        {
+          id: "c2",
+          imageUrl:
+            "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+          name: "White T-Shirt",
+          genre: "Casual",
+          rating: 5,
+        },
+      ];
+      setSimilarItems(mockSimilarItems);
+
+      // Mock recommendations - you can implement real logic later
+      const mockRecommendations: WishlistItem[] = [
+        {
+          id: "r1",
+          imageUrl:
+            "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+          name: "Matching Belt",
+          notes: "Brown leather, size 32",
           createdAt: new Date().toISOString(),
         },
         {
-          id: "2",
+          id: "r2",
           imageUrl:
-            "https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-          name: "Leather Boots",
-          notes: "Brown, size 9",
+            "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
+          name: "Stylish Hat",
+          notes: "Beige, one size",
           createdAt: new Date().toISOString(),
         },
       ];
-
-      const foundItem = mockItems.find((item) => item.id === id);
-
-      if (foundItem) {
-        setItem(foundItem);
-
-        // Mock compatibility score (0-100)
-        setCompatibilityScore(Math.floor(Math.random() * 100));
-
-        // Mock similar items from closet
-        const mockSimilarItems: ClosetItem[] = [
-          {
-            id: "c1",
-            imageUrl:
-              "https://images.unsplash.com/photo-1551028719-00167b16eac5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-            name: "Blue Denim Jeans",
-            genre: "Casual",
-            rating: 4,
-          },
-          {
-            id: "c2",
-            imageUrl:
-              "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-            name: "White T-Shirt",
-            genre: "Casual",
-            rating: 5,
-          },
-        ];
-        setSimilarItems(mockSimilarItems);
-
-        // Mock recommendations
-        const mockRecommendations: WishlistItem[] = [
-          {
-            id: "r1",
-            imageUrl:
-              "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-            name: "Matching Belt",
-            notes: "Brown leather, size 32",
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: "r2",
-            imageUrl:
-              "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60",
-            name: "Stylish Hat",
-            notes: "Beige, one size",
-            createdAt: new Date().toISOString(),
-          },
-        ];
-        setRecommendations(mockRecommendations);
-      } else {
-        setError("Item not found");
-      }
+      setRecommendations(mockRecommendations);
     } catch (err) {
       console.error("Error loading item details:", err);
       setError("Failed to load item details");
