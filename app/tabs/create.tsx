@@ -64,7 +64,7 @@ export default function CreateScreen() {
         setSelectedImage(undefined);
         setIsUploading(false);
         setUploadProgress("");
-        router.push("/tabs/outfits");
+        router.push("/tabs/closet");
       }, 1000);
     } catch (error) {
       console.error("Upload failed:", error);

@@ -80,7 +80,7 @@ export default function Index() {
 
   // Navigate to outfits tab
   const navigateToOutfits = () => {
-    router.push("/tabs/outfits");
+    router.push("/tabs/closet");
   };
 
   return (
