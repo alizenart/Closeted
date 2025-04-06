@@ -12,6 +12,7 @@ import {
   TextInput,
   Modal,
   ScrollView,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { auth, db, storage } from "../config/firebase";
@@ -29,7 +30,7 @@ import {
   doc,
   setDoc,
 } from "firebase/firestore";
-import { ref, listAll, getDownloadURL } from "firebase/storage";
+import { ref, listAll, getDownloadURL, deleteObject } from "firebase/storage";
 
 // Define a WishlistItem type
 interface WishlistItem {
@@ -62,6 +63,8 @@ export default function WishlistScreen() {
   const [selectedImage, setSelectedImage] = useState<string | undefined>(
     undefined
   );
+  const [selectedItem, setSelectedItem] = useState<WishlistItem | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.95)).current;
 
@@ -293,6 +296,46 @@ export default function WishlistScreen() {
     router.push(`/wishlist/${item.id}`);
   };
 
+  const handleLongPress = (item: WishlistItem) => {
+    setSelectedItem(item);
+    setShowDeleteModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedItem) return;
+
+    try {
+      const userId = auth.currentUser?.uid;
+      if (!userId) {
+        alert("Please sign in to delete items");
+        return;
+      }
+
+      // Delete from Firebase Storage
+      const folderPath = `images/wishlist/${userId}/${selectedItem.id}`;
+
+      // Delete the image file
+      const imageRef = ref(storage, `${folderPath}/image.jpg`);
+      await deleteObject(imageRef);
+
+      // Delete the metadata file
+      const metadataRef = ref(storage, `${folderPath}/metadata.json`);
+      await deleteObject(metadataRef);
+
+      // Update local state
+      setWishlistItems(
+        wishlistItems.filter((item) => item.id !== selectedItem.id)
+      );
+
+      setShowDeleteModal(false);
+      setSelectedItem(null);
+      Alert.alert("Success", "Item deleted from wishlist");
+    } catch (error) {
+      console.error("Error deleting item:", error);
+      Alert.alert("Error", "Failed to delete item. Please try again.");
+    }
+  };
+
   const renderWishlistItem = ({
     item,
     index,
@@ -300,11 +343,14 @@ export default function WishlistScreen() {
     item: WishlistItem;
     index: number;
   }) => {
-    // Create staggered animation delay based on index
     const delay = index * 100;
 
     return (
-      <TouchableOpacity onPress={() => handleItemPress(item)}>
+      <TouchableOpacity
+        onPress={() => handleItemPress(item)}
+        onLongPress={() => handleLongPress(item)}
+        delayLongPress={500}
+      >
         <Animated.View
           className="mb-4 rounded-xl overflow-hidden bg-white shadow-md border border-emerald-100"
           style={{
@@ -549,6 +595,39 @@ export default function WishlistScreen() {
                 )}
               </TouchableOpacity>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteModal(false)}
+      >
+        <View className="flex-1 bg-black/50 items-center justify-center">
+          <View className="bg-white rounded-xl p-6 w-4/5">
+            <Text className="text-emerald-700 text-xl font-bold mb-4 text-center">
+              Delete Item
+            </Text>
+            <Text className="text-gray-600 mb-6 text-center">
+              Are you sure you want to delete this item from your wishlist?
+            </Text>
+            <View className="flex-row justify-between">
+              <TouchableOpacity
+                className="bg-gray-200 px-6 py-3 rounded-xl"
+                onPress={() => setShowDeleteModal(false)}
+              >
+                <Text className="text-gray-700 font-semibold">Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                className="bg-red-500 px-6 py-3 rounded-xl"
+                onPress={handleDelete}
+              >
+                <Text className="text-white font-semibold">Delete</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
