@@ -7,11 +7,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   FlatList,
+  Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
-import { auth, storage } from "../config/firebase";
-import { ref, getDownloadURL } from "firebase/storage";
+import { auth, storage, rtdb } from "../config/firebase";
+import { ref as storageRef, getDownloadURL } from "firebase/storage";
+import { ref as dbRef, set, onValue, off } from "firebase/database";
 
 // Define a WishlistItem type
 interface WishlistItem {
@@ -20,6 +22,8 @@ interface WishlistItem {
   name: string;
   notes?: string;
   createdAt: string;
+  timerStarted?: number;
+  timerEndTime?: number;
 }
 
 // Define a ClosetItem type for similar items
@@ -39,10 +43,98 @@ export default function WishlistItemDetailScreen() {
   const [compatibilityScore, setCompatibilityScore] = useState(0);
   const [similarItems, setSimilarItems] = useState<ClosetItem[]>([]);
   const [recommendations, setRecommendations] = useState<WishlistItem[]>([]);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [timerActive, setTimerActive] = useState(false);
 
   useEffect(() => {
     loadItemDetails();
+    return () => {
+      // Cleanup timer listener
+      const userId = auth.currentUser?.uid;
+      if (userId) {
+        const timerRef = dbRef(rtdb, `timers/${userId}/${id}`);
+        off(timerRef);
+      }
+    };
   }, [id]);
+
+  useEffect(() => {
+    // Set up timer listener
+    const userId = auth.currentUser?.uid;
+    if (userId && item?.id) {
+      const timerRef = dbRef(rtdb, `timers/${userId}/${item.id}`);
+      onValue(timerRef, (snapshot) => {
+        const timerData = snapshot.val();
+        if (timerData) {
+          const { startTime, endTime } = timerData;
+          const now = Date.now();
+          if (now < endTime) {
+            setTimeRemaining(endTime - now);
+            setTimerActive(true);
+          } else {
+            setTimeRemaining(null);
+            setTimerActive(false);
+          }
+        }
+      });
+    }
+  }, [item?.id]);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timeRemaining !== null && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining((prev) => {
+          if (prev === null || prev <= 1000) {
+            clearInterval(interval);
+            setTimerActive(false);
+            return null;
+          }
+          return prev - 1000;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [timeRemaining]);
+
+  const formatTimeRemaining = (ms: number) => {
+    const hours = Math.floor(ms / (1000 * 60 * 60));
+    const minutes = Math.floor((ms % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((ms % (1000 * 60)) / 1000);
+    return `${hours.toString().padStart(2, "0")}:${minutes
+      .toString()
+      .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+  };
+
+  const handleStartTimer = async () => {
+    const userId = auth.currentUser?.uid;
+    if (!userId || !item) return;
+
+    const startTime = Date.now();
+    const endTime = startTime + 48 * 60 * 60 * 1000; // 48 hours in milliseconds
+
+    try {
+      const timerRef = dbRef(rtdb, `timers/${userId}/${item.id}`);
+      await set(timerRef, {
+        startTime,
+        endTime,
+      });
+
+      setTimeRemaining(48 * 60 * 60 * 1000);
+      setTimerActive(true);
+      Alert.alert(
+        "Timer Started",
+        "You have 48 hours to decide if you want to purchase this item."
+      );
+    } catch (error) {
+      console.error("Error starting timer:", error);
+      Alert.alert("Error", "Failed to start timer. Please try again.");
+    }
+  };
 
   const loadItemDetails = async () => {
     try {
@@ -56,14 +148,14 @@ export default function WishlistItemDetailScreen() {
       }
 
       // Get the image URL
-      const imageRef = ref(
+      const imageRef = storageRef(
         storage,
         `images/wishlist/${userId}/${id}/image.jpg`
       );
       const imageUrl = await getDownloadURL(imageRef);
 
       // Get the metadata
-      const metadataRef = ref(
+      const metadataRef = storageRef(
         storage,
         `images/wishlist/${userId}/${id}/metadata.json`
       );
@@ -76,9 +168,24 @@ export default function WishlistItemDetailScreen() {
         name: metadata.name || "",
         notes: metadata.notes || "",
         createdAt: metadata.createdAt || new Date().toISOString(),
+        timerStarted: metadata.timerStarted,
+        timerEndTime: metadata.timerEndTime,
       };
 
       setItem(wishlistItem);
+
+      // Check for existing timer
+      const timerRef = dbRef(rtdb, `timers/${userId}/${id}`);
+      onValue(timerRef, (snapshot) => {
+        const timerData = snapshot.val();
+        if (timerData) {
+          const now = Date.now();
+          if (now < timerData.endTime) {
+            setTimeRemaining(timerData.endTime - now);
+            setTimerActive(true);
+          }
+        }
+      });
 
       // Mock compatibility score (0-100) - you can implement real logic later
       setCompatibilityScore(Math.floor(Math.random() * 100));
@@ -239,6 +346,32 @@ export default function WishlistItemDetailScreen() {
           <Text className="text-gray-500 text-sm mb-6">
             Added on {new Date(item.createdAt).toLocaleDateString()}
           </Text>
+
+          {/* Timer Section */}
+          <View className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 mb-6">
+            <Text className="text-emerald-700 text-lg font-semibold mb-2">
+              Decision Timer
+            </Text>
+            {timerActive && timeRemaining !== null ? (
+              <View className="items-center">
+                <Text className="text-2xl font-bold text-emerald-600 mb-2">
+                  {formatTimeRemaining(timeRemaining)}
+                </Text>
+                <Text className="text-gray-600 text-center">
+                  Time remaining to make your decision
+                </Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={handleStartTimer}
+                className="bg-emerald-600 py-3 rounded-xl"
+              >
+                <Text className="text-white text-center font-semibold">
+                  Start 48-Hour Timer
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Compatibility Score */}
           <View className="bg-white rounded-xl shadow-sm border border-emerald-100 p-4 mb-6">
