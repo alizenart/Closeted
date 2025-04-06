@@ -74,6 +74,34 @@ const AESTHETICS = [
   },
 ];
 
+const SHOPPING_GOALS = [
+  {
+    id: "sustainability",
+    label: "Sustainability",
+    description: "Eco-friendly and ethical fashion choices",
+  },
+  {
+    id: "budget_friendly",
+    label: "Budget-Friendly",
+    description: "Affordable and value-conscious shopping",
+  },
+  {
+    id: "high_quality",
+    label: "High-Quality",
+    description: "Durable and well-crafted pieces",
+  },
+  {
+    id: "luxury_designer",
+    label: "Luxury/Designer",
+    description: "Premium and designer fashion",
+  },
+  {
+    id: "capsule",
+    label: "Capsule Wardrobe",
+    description: "Minimalist and versatile pieces",
+  },
+];
+
 const { width } = Dimensions.get("window");
 const CARD_SPACING = 8;
 const CARD_WIDTH = (width - 48 - CARD_SPACING) / 2; // 48 = padding (16 * 2) + gap between cards (16)
@@ -82,6 +110,8 @@ const CARD_HEIGHT = CARD_WIDTH * 1.5;
 export default function OnboardingScreen() {
   const router = useRouter();
   const [selectedAesthetics, setSelectedAesthetics] = useState<string[]>([]);
+  const [selectedGoals, setSelectedGoals] = useState<string[]>([]);
+  const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { updatePreferences, loading, error, preferences } =
     useUserPreferences();
@@ -135,17 +165,38 @@ export default function OnboardingScreen() {
     });
   };
 
-  const handleSubmit = async () => {
-    if (selectedAesthetics.length === 0) {
+  const toggleGoal = (goalId: string) => {
+    setSelectedGoals((prev) => {
+      if (prev.includes(goalId)) {
+        return prev.filter((id) => id !== goalId);
+      } else {
+        return [...prev, goalId];
+      }
+    });
+  };
+
+  const handleNext = () => {
+    if (currentStep === 1 && selectedAesthetics.length === 0) {
       Alert.alert("Error", "Please select at least one aesthetic");
       return;
     }
+    if (currentStep === 2 && selectedGoals.length === 0) {
+      Alert.alert("Error", "Please select at least one shopping goal");
+      return;
+    }
+    setCurrentStep(currentStep + 1);
+  };
 
+  const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      console.log("Submitting preferences:", selectedAesthetics);
+      console.log("Submitting preferences:", {
+        selectedAesthetics,
+        selectedGoals,
+      });
       const success = await updatePreferences({
         aesthetics: selectedAesthetics,
+        shoppingGoals: selectedGoals,
         onboardingCompleted: true,
       });
 
@@ -194,77 +245,111 @@ export default function OnboardingScreen() {
           >
             <View className="space-y-2">
               <Text className="text-4xl font-bold text-emerald-800">
-                Welcome to Closeted!
+                {currentStep === 1
+                  ? "Welcome to Outfittted!"
+                  : "Shopping Goals"}
               </Text>
               <Text className="text-emerald-700 text-lg font-medium">
-                Let's personalize your experience. Select the aesthetics that
-                interest you:
+                {currentStep === 1
+                  ? "Let's personalize your experience. Select the aesthetics that interest you:"
+                  : "What are your shopping priorities? Select your goals:"}
               </Text>
             </View>
 
-            <View className="flex-row flex-wrap gap-2">
-              {AESTHETICS.map((aesthetic) => (
-                <TouchableOpacity
-                  key={aesthetic.id}
-                  onPress={() => toggleAesthetic(aesthetic.id)}
-                  style={{
-                    width: CARD_WIDTH,
-                    height: CARD_HEIGHT,
-                    marginBottom: CARD_SPACING,
-                  }}
-                >
-                  <ImageBackground
-                    source={aesthetic.image}
+            {currentStep === 1 ? (
+              <View className="flex-row flex-wrap gap-2">
+                {AESTHETICS.map((aesthetic) => (
+                  <TouchableOpacity
+                    key={aesthetic.id}
+                    onPress={() => toggleAesthetic(aesthetic.id)}
                     style={{
-                      width: "100%",
-                      height: "100%",
-                      justifyContent: "flex-end",
-                    }}
-                    imageStyle={{
-                      borderRadius: 16,
-                      borderWidth: 2,
-                      borderColor: selectedAesthetics.includes(aesthetic.id)
-                        ? "#059669"
-                        : "transparent",
+                      width: CARD_WIDTH,
+                      height: CARD_HEIGHT,
+                      marginBottom: CARD_SPACING,
                     }}
                   >
-                    <LinearGradient
-                      colors={["transparent", "rgba(0,0,0,0.8)"]}
+                    <ImageBackground
+                      source={aesthetic.image}
                       style={{
-                        padding: 12,
-                        borderBottomLeftRadius: 16,
-                        borderBottomRightRadius: 16,
+                        width: "100%",
+                        height: "100%",
+                        justifyContent: "flex-end",
+                      }}
+                      imageStyle={{
+                        borderRadius: 16,
+                        borderWidth: 2,
+                        borderColor: selectedAesthetics.includes(aesthetic.id)
+                          ? "#059669"
+                          : "transparent",
                       }}
                     >
-                      <Text
-                        className="text-white text-center font-semibold text-base"
-                        numberOfLines={1}
+                      <LinearGradient
+                        colors={["transparent", "rgba(0,0,0,0.8)"]}
+                        style={{
+                          padding: 12,
+                          borderBottomLeftRadius: 16,
+                          borderBottomRightRadius: 16,
+                        }}
                       >
-                        {aesthetic.label}
-                      </Text>
-                    </LinearGradient>
-                  </ImageBackground>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {isSubmitting ? (
-              <View className="items-center py-4">
-                <ActivityIndicator size="large" color="#059669" />
-                <Text className="text-emerald-700 mt-2 font-medium">
-                  Saving preferences...
-                </Text>
+                        <Text
+                          className="text-white text-center font-semibold text-base"
+                          numberOfLines={1}
+                        >
+                          {aesthetic.label}
+                        </Text>
+                      </LinearGradient>
+                    </ImageBackground>
+                  </TouchableOpacity>
+                ))}
               </View>
             ) : (
-              <TouchableOpacity
-                onPress={handleSubmit}
-                className="w-full bg-emerald-600 py-3.5 rounded-2xl shadow-lg shadow-emerald-200 active:bg-emerald-700"
-              >
-                <Text className="text-white text-center font-semibold text-lg">
-                  Continue
-                </Text>
-              </TouchableOpacity>
+              <View className="space-y-4">
+                {SHOPPING_GOALS.map((goal) => (
+                  <TouchableOpacity
+                    key={goal.id}
+                    onPress={() => toggleGoal(goal.id)}
+                    className={`p-4 rounded-xl border-2 ${
+                      selectedGoals.includes(goal.id)
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-gray-200 bg-white"
+                    }`}
+                  >
+                    <Text className="text-lg font-semibold text-emerald-800">
+                      {goal.label}
+                    </Text>
+                    <Text className="text-gray-600 mt-1">
+                      {goal.description}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             )}
+
+            <View className="flex-row justify-between mt-6">
+              {currentStep > 1 && (
+                <TouchableOpacity
+                  onPress={() => setCurrentStep(currentStep - 1)}
+                  className="px-6 py-3 bg-gray-200 rounded-lg"
+                >
+                  <Text className="text-gray-700 font-medium">Back</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={currentStep === 2 ? handleSubmit : handleNext}
+                className={`px-6 py-3 rounded-lg ${
+                  isSubmitting ? "bg-emerald-400" : "bg-emerald-500"
+                }`}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text className="text-white font-medium">
+                    {currentStep === 2 ? "Finish" : "Next"}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </Animated.View>
         </ScrollView>
       </LinearGradient>

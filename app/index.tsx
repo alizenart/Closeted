@@ -111,7 +111,7 @@ export default function LandingScreen() {
             <View className="w-full max-w-sm space-y-8">
               <View className="items-center space-y-2">
                 <Text className="text-5xl font-bold text-emerald-800 mb-2">
-                  Welcome to Closeted
+                  Welcome to Outfitted
                 </Text>
                 <Text className="text-emerald-700 text-center text-lg font-medium">
                   {isSignUp ? "Create your account" : "Sign in to your account"}

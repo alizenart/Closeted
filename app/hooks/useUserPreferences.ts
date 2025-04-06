@@ -5,6 +5,7 @@ import { ref, uploadBytes, getDownloadURL, getBytes } from 'firebase/storage';
 
 export interface UserPreferences {
   aesthetics: string[];
+  shoppingGoals: string[];
   onboardingCompleted: boolean;
 }
 
@@ -57,6 +58,7 @@ export function useUserPreferences() {
             console.log('No preferences found, setting defaults');
             setPreferences({
               aesthetics: [],
+              shoppingGoals: [],
               onboardingCompleted: false,
             });
           } else {
