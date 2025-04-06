@@ -2,16 +2,15 @@ import { auth, storage, db, app } from '../config/firebase';
 import { getStorage, ref, uploadBytes, getDownloadURL, listAll } from 'firebase/storage';
 import { collection, addDoc, query, where, getDocs, Timestamp } from 'firebase/firestore';
 import * as FileSystem from 'expo-file-system';
-import RNFetchBlob from 'react-native-blob-util';
 
 export interface Outfit {
   id: string;
   imageUrl: string;
   createdAt: Date;
   userId: string;
-  details?: string;
-  rating?: number;
-  genre?: string;
+  details: string;
+  rating: number;
+  genre: string;
   date?: Date;
 }
 
@@ -32,18 +31,24 @@ const retryOperation = async <T>(
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await operation();
+      console.log(`Attempt ${attempt} of ${maxRetries}`);
+      const result = await operation();
+      console.log(`Operation completed successfully on attempt ${attempt}`);
+      return result;
     } catch (error) {
-      console.log(`Attempt ${attempt} failed:`, error);
+      console.error(`Attempt ${attempt} failed:`, error);
       lastError = error;
 
       if (attempt < maxRetries) {
         console.log(`Retrying in ${delayMs}ms...`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
+      } else {
+        console.error('All retry attempts failed');
       }
     }
   }
 
+  console.error('Operation failed after all retries:', lastError);
   throw lastError;
 };
 
@@ -61,35 +66,72 @@ export const uploadImage = async (
     console.log('Starting image upload for user:', userId);
 
     // Use retry logic for Storage operations
-    return await retryOperation(async () => {
-      const response = await fetch(uri);
-      const blob = await response.blob();
+    const downloadURL = await retryOperation(async () => {
+      try {
+        const response = await fetch(uri);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch image: ${response.statusText}`);
+        }
+        const blob = await response.blob();
+        console.log('Image blob created successfully');
 
-      const storageRef = ref(getStorage(app), `outfits/${userId}/${Date.now()}`);
-      console.log('Created storage reference');
+        // Generate a unique folder name for this image
+        const timestamp = Date.now();
+        const folderName = `image_${timestamp}`;
 
-      console.log('Uploading image to storage...');
-      const snapshot = await uploadBytes(storageRef, blob);
-      console.log('Image uploaded to storage');
+        // Create references for both the image and metadata
+        const imageRef = ref(getStorage(app), `images/${userId}/${folderName}/image.jpg`);
+        const metadataRef = ref(getStorage(app), `images/${userId}/${folderName}/metadata.json`);
 
-      console.log('Getting download URL...');
-      const downloadURL = await getDownloadURL(snapshot.ref);
-      console.log('Got download URL:', downloadURL);
+        console.log('Created storage references');
 
-      // Store metadata in Firestore
-      const outfitsRef = collection(db, 'outfits');
-      await addDoc(outfitsRef, {
-        imageUrl: downloadURL,
-        userId: userId,
-        createdAt: Timestamp.now(),
-        ...metadata
-      });
+        // Upload the image
+        console.log('Uploading image to storage...');
+        const imageSnapshot = await uploadBytes(imageRef, blob);
+        console.log('Image uploaded to storage successfully');
 
-      return downloadURL;
+        // Create and upload metadata
+        const metadataContent = {
+          details: metadata?.details || '',
+          rating: metadata?.rating || 0,
+          genre: metadata?.genre || '',
+          date: metadata?.date || new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+          userId: userId
+        };
+
+        const metadataBlob = new Blob([JSON.stringify(metadataContent)], { type: 'application/json' });
+        await uploadBytes(metadataRef, metadataBlob);
+        console.log('Metadata uploaded to storage successfully');
+
+        // Get the download URL for the image
+        console.log('Getting download URL...');
+        const url = await getDownloadURL(imageSnapshot.ref);
+        console.log('Got download URL:', url);
+
+        // Store reference in Firestore for easier querying
+        const outfitsRef = collection(db, 'outfits');
+        await addDoc(outfitsRef, {
+          imageUrl: url,
+          folderPath: `images/${userId}/${folderName}`,
+          userId: userId,
+          createdAt: Timestamp.now(),
+          ...metadata
+        });
+        console.log('Firestore document created successfully');
+
+        return url;
+      } catch (error) {
+        console.error('Error in upload process:', error);
+        throw error; // Re-throw to be caught by retryOperation
+      }
     });
+
+    console.log('Upload process completed successfully');
+    return downloadURL;
   } catch (error: any) {
     console.error('Error uploading image:', error);
-    throw error;
+    throw new Error(`Failed to upload image: ${error.message}`);
   }
 };
 
@@ -110,12 +152,19 @@ export const getUserOutfits = async (userId: string): Promise<Outfit[]> => {
       const querySnapshot = await getDocs(q);
       console.log('Query executed, found', querySnapshot.size, 'outfits');
 
-      const outfits = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        imageUrl: doc.data().imageUrl,
-        createdAt: doc.data().createdAt.toDate(),
-        userId: doc.data().userId
-      }));
+      const outfits = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          imageUrl: data.imageUrl,
+          createdAt: data.createdAt.toDate(),
+          userId: data.userId,
+          details: data.details || '',
+          rating: data.rating || 0,
+          genre: data.genre || '',
+          date: data.date ? data.date.toDate() : undefined
+        };
+      });
       console.log('Processed outfits:', outfits);
 
       return outfits;
@@ -137,25 +186,48 @@ export const getUserOutfitsFromStorage = async (userId: string): Promise<Outfit[
       const storageRef = ref(getStorage(app), `images/${userId}`);
       console.log('Created storage reference for user folder');
 
-      console.log('Listing all items in user folder...');
+      console.log('Listing all folders in user directory...');
       const result = await listAll(storageRef);
-      console.log('Found', result.items.length, 'items in storage');
+      console.log('Found', result.prefixes.length, 'folders in storage');
 
-      // Get download URLs for all items
-      const downloadUrls = await Promise.all(
-        result.items.map(async (item) => {
-          const url = await getDownloadURL(item);
-          return {
-            id: item.name,
-            imageUrl: url,
-            createdAt: new Date(), // We don't have creation date in storage metadata
-            userId: userId
-          };
+      // Get outfits from each folder
+      const outfits = await Promise.all(
+        result.prefixes.map(async (folderRef) => {
+          try {
+            // Get the image URL
+            const imageRef = ref(getStorage(app), `${folderRef.fullPath}/image.jpg`);
+            const imageUrl = await getDownloadURL(imageRef);
+
+            // Get the metadata
+            const metadataRef = ref(getStorage(app), `${folderRef.fullPath}/metadata.json`);
+            const metadataResponse = await fetch(await getDownloadURL(metadataRef));
+            const metadata = await metadataResponse.json();
+
+            const outfit: Outfit = {
+              id: folderRef.name,
+              imageUrl,
+              createdAt: new Date(metadata.createdAt),
+              userId: metadata.userId,
+              details: metadata.details || '',
+              rating: metadata.rating || 0,
+              genre: metadata.genre || '',
+              date: metadata.date ? new Date(metadata.date) : undefined
+            };
+            return outfit;
+          } catch (error) {
+            console.error(`Error processing folder ${folderRef.name}:`, error);
+            return null;
+          }
         })
       );
 
-      console.log('Processed', downloadUrls.length, 'outfits from storage');
-      return downloadUrls;
+      // Filter out any failed retrievals and sort by creation date
+      const validOutfits = outfits
+        .filter((outfit): outfit is Outfit => outfit !== null)
+        .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+      console.log('Processed', validOutfits.length, 'outfits from storage');
+      return validOutfits;
     });
   } catch (error: any) {
     console.error('Error getting user outfits from storage:', error);

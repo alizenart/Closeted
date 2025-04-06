@@ -34,7 +34,7 @@ const GENRES = [
   "Artsy / Eclectic",
   "Techwear / Futuristic",
   "Business Casual / Smart Chic",
-  "Other"
+  "Other",
 ];
 
 export default function CreateScreen() {
@@ -87,6 +87,9 @@ export default function CreateScreen() {
       setIsUploading(true);
       setUploadProgress("Preparing image...");
 
+      // Add a small delay to ensure UI updates
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
       setUploadProgress("Uploading to server...");
       const imageUrl = await uploadImage(selectedImage, userId, {
         details: details.trim(),
@@ -95,21 +98,25 @@ export default function CreateScreen() {
         date,
       });
 
+      if (!imageUrl) {
+        throw new Error("Upload failed - no URL returned");
+      }
+
       console.log("Image uploaded successfully:", imageUrl);
       setUploadProgress("Upload complete!");
 
+      // Reset all states immediately after successful upload
+      setSelectedImage(undefined);
+      setDetails("");
+      setRating(5);
+      setGenre("");
+      setDate(new Date());
+      setIsUploading(false);
+      setUploadProgress("");
+
       // Show success message and navigate to outfits tab
-      setTimeout(() => {
-        alert("Image uploaded successfully!");
-        setSelectedImage(undefined);
-        setDetails("");
-        setRating(5);
-        setGenre("");
-        setDate(new Date());
-        setIsUploading(false);
-        setUploadProgress("");
-        router.push("/tabs/closet");
-      }, 1000);
+      alert("Image uploaded successfully!");
+      router.push("/tabs/closet");
     } catch (error) {
       console.error("Upload failed:", error);
       alert("Failed to upload image. Please try again.");
