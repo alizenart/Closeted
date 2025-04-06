@@ -1,32 +1,74 @@
 // landing.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
-  Button,
   View,
-  StyleSheet,
   Text,
   ActivityIndicator,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  TouchableOpacity,
+  Image,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { auth } from "./config/firebase";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  signInWithPopup,
+} from "firebase/auth";
+import * as WebBrowser from "expo-web-browser";
+
+// Initialize WebBrowser for auth session handling
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LandingScreen() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isSignUp, setIsSignUp] = useState(false);
 
-  const handleSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
       setError(null);
+
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      console.log("User signed in:", result.user);
+      console.log("Google Sign In successful:", result.user);
       router.replace("/tabs");
-    } catch (err) {
-      console.error("Sign in error:", err);
-      setError("An error occurred during sign in. Please try again.");
+    } catch (err: any) {
+      console.error("Google Sign In error:", err);
+      setError(err.message || "An error occurred during Google Sign In");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAuth = async () => {
+    if (!email || !password) {
+      setError("Please fill in all fields");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      if (isSignUp) {
+        await createUserWithEmailAndPassword(auth, email, password);
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+      }
+
+      router.replace("/tabs");
+    } catch (err: any) {
+      console.error("Auth error:", err);
+      setError(err.message || "An error occurred during authentication");
     } finally {
       setIsLoading(false);
     }
@@ -37,67 +79,106 @@ export default function LandingScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to Closeted</Text>
-      <Text style={styles.subtitle}>Please sign in to continue</Text>
-      {error && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.error}>{error}</Text>
-          <Button
-            title="Try Again"
-            onPress={() => setError(null)}
-            color="#4285f4"
-          />
-        </View>
-      )}
-      {isLoading ? (
-        <ActivityIndicator size="large" color="#4285f4" />
-      ) : (
-        <>
-          <Button
-            title="Sign in with Google"
-            onPress={handleSignIn}
-            color="#4285f4"
-          />
-          <View style={styles.skipButton}>
-            <Button title="Skip" onPress={handleSkip} color="#4285f4" />
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      className="flex-1 bg-background"
+    >
+      <ScrollView
+        contentContainerStyle={{ flexGrow: 1 }}
+        className="flex-1 px-6"
+      >
+        <View className="flex-1 justify-center items-center">
+          <View className="w-full max-w-sm space-y-8">
+            <View className="items-center">
+              <Text className="text-3xl font-bold text-text mb-2">
+                Welcome to Closeted
+              </Text>
+              <Text className="text-text-secondary text-center">
+                {isSignUp ? "Create your account" : "Sign in to your account"}
+              </Text>
+            </View>
+
+            <View className="space-y-4">
+              <TextInput
+                className="w-full bg-background-light text-text px-4 py-3 rounded-lg"
+                placeholder="Email"
+                placeholderTextColor="#666"
+                value={email}
+                onChangeText={setEmail}
+                autoCapitalize="none"
+                keyboardType="email-address"
+              />
+              <TextInput
+                className="w-full bg-background-light text-text px-4 py-3 rounded-lg"
+                placeholder="Password"
+                placeholderTextColor="#666"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+            </View>
+
+            {error && (
+              <View className="bg-red-500/10 p-4 rounded-lg">
+                <Text className="text-red-500 text-center">{error}</Text>
+              </View>
+            )}
+
+            {isLoading ? (
+              <View className="items-center py-4">
+                <ActivityIndicator size="large" color="#4285f4" />
+              </View>
+            ) : (
+              <View className="space-y-4">
+                <TouchableOpacity
+                  onPress={handleAuth}
+                  className="w-full bg-primary py-3 rounded-lg"
+                >
+                  <Text className="text-white text-center font-semibold">
+                    {isSignUp ? "Sign Up" : "Sign In"}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => setIsSignUp(!isSignUp)}
+                  className="w-full py-3"
+                >
+                  <Text className="text-text-secondary text-center">
+                    {isSignUp
+                      ? "Already have an account? Sign In"
+                      : "Need an account? Sign Up"}
+                  </Text>
+                </TouchableOpacity>
+
+                <View className="flex-row items-center my-4">
+                  <View className="flex-1 h-[1px] bg-gray-600" />
+                  <Text className="mx-4 text-text-secondary">OR</Text>
+                  <View className="flex-1 h-[1px] bg-gray-600" />
+                </View>
+
+                <TouchableOpacity
+                  onPress={handleGoogleSignIn}
+                  className="w-full bg-white py-3 rounded-lg flex-row items-center justify-center space-x-2"
+                >
+                  <Image
+                    source={{ uri: "https://www.google.com/favicon.ico" }}
+                    className="w-5 h-5"
+                  />
+                  <Text className="text-gray-800 font-semibold">
+                    Sign in with Google
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity onPress={handleSkip} className="w-full py-3">
+                  <Text className="text-text-secondary text-center">
+                    Skip for now
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
-        </>
-      )}
-    </View>
+        </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#25292e",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#fff",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#fff",
-    marginBottom: 32,
-    opacity: 0.8,
-  },
-  errorContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  error: {
-    color: "#ff6b6b",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  skipButton: {
-    marginTop: 16,
-  },
-});
